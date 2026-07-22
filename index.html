@@ -64,15 +64,54 @@
     .char-result { margin-top: 18px; }
     .char-result .placeholder { color: #6b7684; font-size: 0.9em; text-align: center; padding: 12px 0; }
     .char-result .err { color: var(--red); font-weight: 700; font-size: 0.9em; text-align: center; padding: 12px 0; }
-    .ci-name { font-size: 1.3em; font-weight: 800; color: var(--text); }
-    .ci-meta { margin-top: 5px; font-size: 0.9em; color: var(--text-2); font-weight: 500; }
-    .ci-exp { margin-top: 18px; }
-    .ci-exp-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.9em; margin-bottom: 8px; }
+
+    .ci-card {
+        display: flex; gap: 16px; align-items: stretch;
+        background: linear-gradient(135deg, #232b38 0%, #1c222d 100%);
+        border: 1px solid var(--line); border-radius: 14px; padding: 16px;
+    }
+    .ci-portrait {
+        position: relative; flex: 0 0 96px; width: 96px; min-height: 96px;
+        border-radius: 12px; background: radial-gradient(circle at 50% 62%, rgba(212,255,0,0.14) 0%, rgba(49,130,246,0.10) 45%, transparent 72%), #12161d;
+        border: 1px solid #2b323e; display: flex; align-items: flex-end; justify-content: center; overflow: hidden;
+    }
+    .ci-portrait img { width: 96px; height: 96px; object-fit: contain; image-rendering: -webkit-optimize-contrast; }
+    .ci-portrait.empty::after { content: '?'; color: #3a4453; font-size: 2em; font-weight: 800; padding-bottom: 26px; }
+
+    .ci-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+    .ci-head { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+    .ci-name { font-size: 1.32em; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
+    .ci-lv { font-size: 0.95em; font-weight: 800; color: var(--lime); white-space: nowrap; }
+    .ci-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+    .ci-badge {
+        font-size: 0.76em; font-weight: 600; color: var(--text-2);
+        background: #2b323e; border: 1px solid #39414f; border-radius: 999px; padding: 3px 10px; white-space: nowrap;
+    }
+    .ci-badge.guild { color: #9fd0ff; background: rgba(49,130,246,0.14); border-color: rgba(49,130,246,0.4); }
+
+    .ci-exp { margin-top: 16px; }
+    .ci-exp-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.86em; margin-bottom: 7px; }
     .ci-exp-top .lbl { color: var(--muted); font-weight: 500; }
-    .ci-exp-top .val { color: var(--lime); font-weight: 800; font-size: 1.05em; }
-    .ci-bar { width: 100%; height: 12px; background: #12161d; border-radius: 6px; overflow: hidden; }
-    .ci-bar-fill { height: 100%; width: 0; background: linear-gradient(90deg, #a9cc2b, var(--lime)); border-radius: 6px; transition: width 0.5s ease; }
-    .ci-date { margin-top: 12px; font-size: 0.8em; color: #6b7684; text-align: right; }
+    .ci-exp-top .val { color: var(--lime); font-weight: 800; font-size: 1.12em; }
+    .ci-bar { position: relative; width: 100%; height: 14px; background: #10141b; border: 1px solid #262d38; border-radius: 999px; overflow: hidden; }
+    .ci-bar-fill {
+        height: 100%; width: 0; border-radius: 999px;
+        background: linear-gradient(90deg, #8fbf1f 0%, #c4f000 55%, var(--lime) 100%);
+        box-shadow: 0 0 10px rgba(212,255,0,0.35);
+        transition: width 0.6s cubic-bezier(.2,.8,.2,1);
+    }
+    .ci-bar-fill::after {
+        content: ''; position: absolute; inset: 0 0 auto 0; height: 50%;
+        background: linear-gradient(180deg, rgba(255,255,255,0.22), transparent); border-radius: 999px 999px 0 0;
+    }
+    .ci-date { margin-top: 11px; font-size: 0.78em; color: #6b7684; text-align: right; }
+
+    @media (max-width: 420px) {
+        .ci-card { gap: 12px; padding: 14px; }
+        .ci-portrait { flex-basis: 76px; width: 76px; min-height: 76px; }
+        .ci-portrait img { width: 76px; height: 76px; }
+        .ci-name { font-size: 1.15em; }
+    }
 
     /* 계산기 목록 */
     .menu-title { font-size: 1.02em; font-weight: 700; margin: 0 0 14px 2px; color: var(--text); }
@@ -163,6 +202,13 @@
     // 프록시 주소는 config.js 에서 한 번만 설정합니다.
     const MAPLE_PROXY_URL = (window.MAPLE_PROXY_URL || "").trim();
 
+    // 닉네임 등 문자열을 HTML에 안전하게 넣기
+    function esc(s) {
+        return String(s).replace(/[&<>"']/g, function (m) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+        });
+    }
+
     async function fetchCharacter() {
         const nameEl = document.getElementById('charName');
         const box = document.getElementById('charResult');
@@ -184,12 +230,34 @@
             const width = isNaN(rate) ? 0 : Math.min(rate, 100);
             const baseDate = data.date ? String(data.date).slice(0, 10) : '';
 
+            // 캐릭터 외형 이미지 (Worker 미갱신 시 없을 수 있음 → 자동으로 숨김)
+            let imgTag = '<span class="ci-portrait empty"></span>';
+            if (data.character_image) {
+                const sep = data.character_image.includes('?') ? '&' : '?';
+                const imgUrl = data.character_image + sep + 'width=192&height=192';
+                imgTag = '<span class="ci-portrait"><img src="' + imgUrl + '" alt="" ' +
+                         'onerror="this.parentNode.classList.add(\'empty\'); this.remove();"></span>';
+            }
+
+            const badges = [];
+            if (data.world_name) badges.push('<span class="ci-badge">' + esc(data.world_name) + '</span>');
+            if (data.character_class) badges.push('<span class="ci-badge">' + esc(data.character_class) + '</span>');
+            if (data.character_guild_name) badges.push('<span class="ci-badge guild">' + esc(data.character_guild_name) + '</span>');
+
             box.innerHTML =
-                '<div class="ci-name">' + (data.character_name || name) + '</div>' +
-                '<div class="ci-meta">' + [data.world_name, data.character_class, 'Lv.' + data.character_level].filter(Boolean).join(' · ') + '</div>' +
-                '<div class="ci-exp">' +
-                    '<div class="ci-exp-top"><span class="lbl">현재 경험치</span><span class="val">' + rateStr + '%</span></div>' +
-                    '<div class="ci-bar"><div class="ci-bar-fill" style="width:' + width + '%"></div></div>' +
+                '<div class="ci-card">' +
+                    imgTag +
+                    '<div class="ci-body">' +
+                        '<div class="ci-head">' +
+                            '<span class="ci-name">' + esc(data.character_name || name) + '</span>' +
+                            '<span class="ci-lv">Lv.' + data.character_level + '</span>' +
+                        '</div>' +
+                        (badges.length ? '<div class="ci-badges">' + badges.join('') + '</div>' : '') +
+                        '<div class="ci-exp">' +
+                            '<div class="ci-exp-top"><span class="lbl">현재 경험치</span><span class="val">' + rateStr + '%</span></div>' +
+                            '<div class="ci-bar"><div class="ci-bar-fill" style="width:' + width + '%"></div></div>' +
+                        '</div>' +
+                    '</div>' +
                 '</div>' +
                 (baseDate ? '<div class="ci-date">기준일 ' + baseDate + '</div>' : '');
         } catch (e) {
