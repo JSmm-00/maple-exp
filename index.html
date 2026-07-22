@@ -19,8 +19,10 @@
         --lime: #d4ff00;
         --red: #f04452;
 
-        /* ★ 캐릭터 이미지 크기: 이 숫자만 바꾸면 됩니다 (기본 96px) */
-        --portrait: 120px;
+        /* ★ 캐릭터 칸 크기 (기본 96px) */
+        --portrait: 96px;
+        /* ★ 캐릭터 확대 배율: 키우려면 이 값을 올리세요 (1.6 ~ 2.6 권장) */
+        --portrait-zoom: 1.9;
     }
     * { box-sizing: border-box; }
     html, body {
@@ -78,7 +80,11 @@
         border-radius: 12px; background: radial-gradient(circle at 50% 62%, rgba(212,255,0,0.14) 0%, rgba(49,130,246,0.10) 45%, transparent 72%), #12161d;
         border: 1px solid #2b323e; display: flex; align-items: flex-end; justify-content: center; overflow: hidden;
     }
-    .ci-portrait img { width: var(--portrait); height: var(--portrait); object-fit: contain; image-rendering: -webkit-optimize-contrast; }
+    .ci-portrait img {
+        width: var(--portrait); height: var(--portrait); object-fit: contain;
+        transform: scale(var(--portrait-zoom)); transform-origin: 50% 62%;
+        image-rendering: pixelated;
+    }
     .ci-portrait.empty::after { content: '?'; color: #3a4453; font-size: 2em; font-weight: 800; padding-bottom: 26px; }
 
     .ci-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
@@ -235,11 +241,10 @@
             // 캐릭터 외형 이미지 (Worker 미갱신 시 없을 수 있음 → 자동으로 숨김)
             let imgTag = '<span class="ci-portrait empty"></span>';
             if (data.character_image) {
-                // CSS의 --portrait 값을 읽어 2배 해상도로 요청 (확대해도 선명하게)
-                const pv = getComputedStyle(document.documentElement).getPropertyValue('--portrait');
-                const px = Math.min(Math.max(parseInt(pv, 10) || 96, 48), 256) * 2;
+                // 넥슨의 width/height는 '캔버스 크기'라 키우면 여백만 늘어남.
+                // 캐릭터에 가깝게 좁은 캔버스를 요청하고, 확대는 CSS(--portrait-zoom)로 처리한다.
                 const sep = data.character_image.includes('?') ? '&' : '?';
-                const imgUrl = data.character_image + sep + 'width=' + px + '&height=' + px;
+                const imgUrl = data.character_image + sep + 'width=96&height=96&x=48&y=48';
                 imgTag = '<span class="ci-portrait"><img src="' + imgUrl + '" alt="" ' +
                          'onerror="this.parentNode.classList.add(\'empty\'); this.remove();"></span>';
             }
