@@ -18,6 +18,9 @@
         --blue: #3182f6;
         --lime: #d4ff00;
         --red: #f04452;
+
+        /* ★ 캐릭터 이미지 크기: 이 숫자만 바꾸면 됩니다 (기본 96px) */
+        --portrait: 120px;
     }
     * { box-sizing: border-box; }
     html, body {
@@ -71,11 +74,11 @@
         border: 1px solid var(--line); border-radius: 14px; padding: 16px;
     }
     .ci-portrait {
-        position: relative; flex: 0 0 96px; width: 96px; min-height: 96px;
+        position: relative; flex: 0 0 var(--portrait); width: var(--portrait); min-height: var(--portrait);
         border-radius: 12px; background: radial-gradient(circle at 50% 62%, rgba(212,255,0,0.14) 0%, rgba(49,130,246,0.10) 45%, transparent 72%), #12161d;
         border: 1px solid #2b323e; display: flex; align-items: flex-end; justify-content: center; overflow: hidden;
     }
-    .ci-portrait img { width: 96px; height: 96px; object-fit: contain; image-rendering: -webkit-optimize-contrast; }
+    .ci-portrait img { width: var(--portrait); height: var(--portrait); object-fit: contain; image-rendering: -webkit-optimize-contrast; }
     .ci-portrait.empty::after { content: '?'; color: #3a4453; font-size: 2em; font-weight: 800; padding-bottom: 26px; }
 
     .ci-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
@@ -108,8 +111,7 @@
 
     @media (max-width: 420px) {
         .ci-card { gap: 12px; padding: 14px; }
-        .ci-portrait { flex-basis: 76px; width: 76px; min-height: 76px; }
-        .ci-portrait img { width: 76px; height: 76px; }
+        .ci-card { --portrait: 76px; }
         .ci-name { font-size: 1.15em; }
     }
 
@@ -146,7 +148,8 @@
 <body>
 <div class="hub">
     <div class="hub-header">
-        <h1>메이플스토리 <span class="accent">경험치</span> 계산기</h1>
+        <h1>메이플 <span class="accent">경험치</span> 계산기</h1>
+        <p>닉네임 검색 · 콘텐츠별 경험치 계산</p>
     </div>
 
     <!-- 닉네임 검색 (캐릭터 및 경험치) -->
@@ -232,8 +235,11 @@
             // 캐릭터 외형 이미지 (Worker 미갱신 시 없을 수 있음 → 자동으로 숨김)
             let imgTag = '<span class="ci-portrait empty"></span>';
             if (data.character_image) {
+                // CSS의 --portrait 값을 읽어 2배 해상도로 요청 (확대해도 선명하게)
+                const pv = getComputedStyle(document.documentElement).getPropertyValue('--portrait');
+                const px = Math.min(Math.max(parseInt(pv, 10) || 96, 48), 256) * 2;
                 const sep = data.character_image.includes('?') ? '&' : '?';
-                const imgUrl = data.character_image + sep + 'width=192&height=192';
+                const imgUrl = data.character_image + sep + 'width=' + px + '&height=' + px;
                 imgTag = '<span class="ci-portrait"><img src="' + imgUrl + '" alt="" ' +
                          'onerror="this.parentNode.classList.add(\'empty\'); this.remove();"></span>';
             }
