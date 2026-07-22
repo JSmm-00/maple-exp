@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>성장의 비약 계산기</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<style>
+    :root{
+        --bg:#191f28; --surface:#202632; --surface-2:#2b323e; --line:#333b48;
+        --text:#f9fafb; --text-2:#b0b8c1; --muted:#8b95a1;
+        --blue:#3182f6; --blue-bright:#5b9dff; --lime:#d4ff00; --red:#f04452;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; background:var(--bg); color:var(--text);
+        font-family:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+        letter-spacing:-0.3px; -webkit-font-smoothing:antialiased; }
+    body{ padding:28px 16px 44px; }
+    .calculator-container{ width:100%; max-width:620px; margin:0 auto; padding:26px;
+        background:var(--surface); border:1px solid var(--line); border-radius:16px; text-align:center; }
+    .calculator-container h1{ color:var(--text); margin:0 0 22px; font-size:1.4em; font-weight:800;
+        display:flex; align-items:center; justify-content:center; gap:8px; }
+    .title-icon{ width:26px; height:26px; }
+
+    .type-section{ margin-bottom:20px; }
+    .potion-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .potion-tile{ display:flex; align-items:center; justify-content:center; gap:10px;
+        padding:16px 12px; border:1px solid var(--line); border-radius:12px; background:var(--bg);
+        cursor:pointer; transition:.15s; font-size:0.9em; font-weight:700; color:var(--text-2); line-height:1.3; }
+    .potion-tile span{ text-align:left; }
+    .potion-tile:hover{ border-color:#3f4c60; }
+    .potion-tile.active{ border-color:var(--blue); background:rgba(49,130,246,0.1); color:var(--text); }
+    .potion-icon{ width:32px; height:32px; object-fit:contain; }
+
+    .input-grid{ display:flex; gap:10px; align-items:flex-start; margin-bottom:20px; }
+    .input-item{ display:flex; flex-direction:column; align-items:center; }
+    .item-level{ flex:1.4; } .item-exp{ flex:1; } .item-count{ flex:1; }
+    .input-item label{ margin-bottom:8px; font-size:0.85em; color:var(--muted); font-weight:700; white-space:nowrap; }
+    .input-item input, .input-item select{ width:100%; padding:12px; height:48px; font-size:16px; text-align:center;
+        border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--text); font-family:inherit; }
+    .input-item input::placeholder{ color:#6b7684; }
+    .input-item input:focus, .input-item select:focus{ outline:none; border-color:var(--blue); box-shadow:0 0 0 3px rgba(49,130,246,0.2); }
+    input[type="number"]::-webkit-outer-spin-button,input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+    input[type="number"]{ -moz-appearance:textfield; }
+    .input-item select{ appearance:none; -webkit-appearance:none; cursor:pointer;
+        background-image:url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23b0b8c1%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+        background-repeat:no-repeat; background-position:right 12px top 50%; background-size:10px auto; }
+
+    .burning-check-container{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:22px; }
+    .burning-box{ display:flex; align-items:center; gap:8px; padding:12px 14px;
+        border:1px solid var(--line); border-radius:12px; background:var(--bg); transition:.15s; }
+    .burning-box:has(#burningCheck:checked){ border-color:#ff5b6e; background:rgba(255,91,110,0.09); }
+    .burning-box:has(#beyondCheck:checked){ border-color:#ff8a3d; background:rgba(255,138,61,0.09); }
+    .burning-icon{ width:24px; height:24px; object-fit:contain; flex-shrink:0; }
+    .burning-label{ font-weight:700; color:#ff5b6e; font-size:0.9em; flex:1; text-align:left; white-space:nowrap; }
+    .beyond-label{ color:#ff8a3d; }
+    .switch{ position:relative; display:inline-block; width:48px; height:26px; flex-shrink:0; }
+    .switch input{ opacity:0; width:0; height:0; }
+    .slider{ position:absolute; cursor:pointer; inset:0; background:#3a4453; transition:.3s; border-radius:34px; }
+    .slider:before{ position:absolute; content:""; height:20px; width:20px; left:3px; bottom:3px; background:#fff; transition:.3s; border-radius:50%; }
+    input:checked + .slider{ background:#ff5b6e; }
+    input:checked + .slider.beyond{ background:#ff8a3d; }
+    input:checked + .slider:before{ transform:translateX(22px); }
+
+    .main-calc-button{ width:100%; padding:14px 20px; border:none; border-radius:11px;
+        background:var(--blue); color:#fff; font-size:16px; font-weight:700; cursor:pointer;
+        font-family:inherit; letter-spacing:-0.3px; transition:background-color .15s; }
+    .main-calc-button:hover{ background:#1f6fe8; }
+    .main-calc-button:active{ transform:translateY(1px); }
+
+    #result{ margin-top:20px; padding:18px; background:#12161d; border:1px solid var(--line);
+        border-radius:12px; min-height:28px; line-height:1.8; font-size:1.05em; text-align:center; color:var(--text-2); }
+    .result-placeholder{ color:#6b7684; font-weight:normal; }
+    .error-message{ font-weight:700; color:var(--red); }
+    .res-hi{ color:var(--lime); font-weight:800; }
+    .res-main{ color:var(--blue-bright); font-weight:800; display:inline-block; margin-top:6px; font-size:1.05em; }
+    .disclaimer{ font-size:0.8em; color:#6b7684; margin-top:8px; }
+
+    @media (max-width:600px){
+        .input-grid{ flex-direction:column; gap:0; }
+        .input-item{ margin-bottom:14px; width:100%; }
+        .calculator-container h1{ font-size:1.2em; }
+    }
+</style>
+</head>
+<body>
+    <div class="calculator-container">
+        <h1>성장의 비약 계산기</h1>
+
+        <div class="type-section">
+            <div class="potion-grid">
+                <div class="potion-tile active" data-value="ex">
+                    <img src="https://k.kakaocdn.net/dn/AP3y9/dJMcafUx2Qw/AAAAAAAAAAAAAAAAAAAAABsxXkFZIp_icAnC6rzeHolaBvdyMzCdRcqt4-Rd5rKX/img.png" class="potion-icon" alt="">
+                    <span>성장의 비약<br>(200~249)</span>
+                </div>
+                <div class="potion-tile" data-value="leap">
+                    <img src="https://k.kakaocdn.net/dn/mrIeX/dJMcafUx2Qv/AAAAAAAAAAAAAAAAAAAAAAOkSZQUiQK1F51Iq_tMuBOceoPiyHYyTbAYY46LKFJo/img.png" class="potion-icon" alt="">
+                    <span>성장의 비약<br>(200~259)</span>
+                </div>
+                <div class="potion-tile" data-value="trans">
+                    <img src="https://k.kakaocdn.net/dn/bgzFZf/dJMcafUx2Qx/AAAAAAAAAAAAAAAAAAAAAF6SJW9Y8-2UHRg-3dBwfIefGPDAYd9K63Xde2ZeeiDI/img.png" class="potion-icon" alt="">
+                    <span>성장의 비약<br>(200~269)</span>
+                </div>
+                <div class="potion-tile" data-value="legend">
+                    <img src="https://k.kakaocdn.net/dn/cf4QhI/dJMcafUx2Qy/AAAAAAAAAAAAAAAAAAAAAIUfHNDMRbiKkB-oMlZIioG1U-K3-bYaTZ37goEprGp0/img.png" class="potion-icon" alt="">
+                    <span>성장의 비약<br>(200~279)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-grid">
+            <div class="input-item item-level">
+                <label for="levelInput">캐릭터 레벨</label>
+                <input type="number" id="levelInput" placeholder="250~299">
+            </div>
+            <div class="input-item item-exp">
+                 <label for="expInput">현재 경험치 (%)</label>
+                 <input type="number" id="expInput" placeholder="기본값 0%">
+            </div>
+            <div class="input-item item-count">
+                 <label for="quantitySelect">사용 개수</label>
+                 <select id="quantitySelect"></select>
+            </div>
+        </div>
+
+        <div class="burning-check-container">
+            <div class="burning-box">
+                <img src="https://k.kakaocdn.net/dn/nACWd/dJMcagFWAAH/AAAAAAAAAAAAAAAAAAAAAHVG-P0CvuRxPUA2r6R4dmt_Dn4jxQ6mZ29J20XgJXh7/img.png" class="burning-icon" alt="">
+                <span class="burning-label">하이퍼 버닝 MAX</span>
+                <label class="switch"><input type="checkbox" id="burningCheck"><span class="slider round"></span></label>
+            </div>
+            <div class="burning-box">
+                <img src="https://k.kakaocdn.net/dn/Tu8so/dJMcahLy2pV/AAAAAAAAAAAAAAAAAAAAAO63JXpYjI08tGl7xFVYc5WiypQnyaPykF94NMuGz6cY/img.png" class="burning-icon" alt="">
+                <span class="burning-label beyond-label">버닝 BEYOND</span>
+                <label class="switch"><input type="checkbox" id="beyondCheck"><span class="slider round beyond"></span></label>
+            </div>
+        </div>
+
+        <button onclick="calculateResult()" class="main-calc-button">계산하기</button>
+
+        <div id="result">
+            <div class="result-placeholder">정보를 입력하고 계산하기를 눌러주세요.</div>
+        </div>
+    </div>
+
+    <script>
+        // 통합 데이터: 4종 비약을 종류별로 보관
+        const POTIONS = {
+            ex: { name: "성장의 비약 (200~249)", min: 250, data: {
+                "250":83.333,"251":80.654,"252":78.550,"253":76.262,"254":74.041,"255":71.884,"256":69.790,"257":67.758,"258":65.784,"259":63.868,
+                "260":8.978,"261":8.889,"262":8.801,"263":8.713,"264":8.627,"265":6.636,"266":6.571,"267":6.506,"268":6.441,"269":6.377,
+                "270":2.873,"271":2.844,"272":2.816,"273":2.788,"274":2.761,"275":1.367,"276":1.242,"277":1.129,"278":1.027,"279":0.933,
+                "280":0.462,"281":0.420,"282":0.382,"283":0.347,"284":0.316,"285":0.156,"286":0.142,"287":0.129,"288":0.117,"289":0.107,
+                "290":0.053,"291":0.048,"292":0.044,"293":0.040,"294":0.036,"295":0.018,"296":0.016,"297":0.015,"298":0.013,"299":0.009
+            }},
+            leap: { name: "성장의 비약 (200~259)", min: 260, data: {
+                "260":14.056,"261":13.917,"262":13.779,"263":13.643,"264":13.508,"265":10.391,"266":10.288,"267":10.186,"268":10.085,"269":9.985,
+                "270":4.498,"271":4.453,"272":4.409,"273":4.366,"274":4.322,"275":2.140,"276":1.945,"277":1.768,"278":1.608,"279":1.461,
+                "280":0.724,"281":0.658,"282":0.598,"283":0.544,"284":0.494,"285":0.245,"286":0.222,"287":0.202,"288":0.184,"289":0.167,
+                "290":0.083,"291":0.075,"292":0.068,"293":0.062,"294":0.056,"295":0.028,"296":0.025,"297":0.023,"298":0.021,"299":0.014
+            }},
+            trans: { name: "성장의 비약 (200~269)", min: 270, data: {
+                "270":45.045,"271":44.599,"272":44.157,"273":43.720,"274":43.287,"275":21.429,"276":19.481,"277":17.710,"278":16.100,"279":14.637,
+                "280":7.246,"281":6.587,"282":5.988,"283":5.444,"284":4.949,"285":2.450,"286":2.227,"287":2.025,"288":1.841,"289":1.673,
+                "290":0.828,"291":0.753,"292":0.685,"293":0.622,"294":0.566,"295":0.280,"296":0.255,"297":0.231,"298":0.210,"299":0.140
+            }},
+            legend: { name: "성장의 비약 (200~279)", min: 280, data: {
+                "280":49.505,"281":45.005,"282":40.913,"283":37.194,"284":33.813,"285":16.739,"286":15.217,"287":13.834,"288":12.576,"289":11.433,
+                "290":5.660,"291":5.145,"292":4.678,"293":4.252,"294":3.866,"295":1.914,"296":1.740,"297":1.582,"298":1.438,"299":0.959
+            }}
+        };
+
+        let selectedPotion = "ex";
+
+        function syncPlaceholder() {
+            const potion = POTIONS[selectedPotion];
+            document.getElementById('levelInput').placeholder = `${potion.min}~299`;
+        }
+
+        function calculateResult() {
+            const potion = POTIONS[selectedPotion];
+            const expData = potion.data;
+
+            const levelInput = document.getElementById('levelInput');
+            const expInput = document.getElementById('expInput');
+            const quantitySelect = document.getElementById('quantitySelect');
+            const burningCheck = document.getElementById('burningCheck');
+            const resultDiv = document.getElementById('result');
+
+            if (!levelInput.value) { resultDiv.innerHTML = `<div class="error-message">레벨을 입력해주세요.</div>`; return; }
+            if (expInput.value === "") { resultDiv.innerHTML = `<div class="error-message">현재 경험치를 입력해주세요. (0 이상)</div>`; return; }
+
+            const startLevel = parseInt(levelInput.value, 10);
+            const startExp = parseFloat(expInput.value);
+            const quantity = parseInt(quantitySelect.value, 10) || 1;
+            const isBurning = burningCheck.checked;
+            const isBeyond = document.getElementById('beyondCheck').checked;
+
+            if (startLevel < potion.min) { resultDiv.innerHTML = `<div class="error-message">${potion.name}은(는) ${potion.min}레벨부터 지원합니다.</div>`; return; }
+            if (startLevel >= 300) { resultDiv.innerHTML = `<div class="error-message">300레벨 이상은 없습니다.</div>`; return; }
+            if (expData[startLevel] === undefined) { resultDiv.innerHTML = `<div class="error-message">데이터 오류: 해당 레벨 정보가 없습니다.</div>`; return; }
+            if (isNaN(startExp) || startExp < 0 || startExp >= 100) { resultDiv.innerHTML = `<div class="error-message">경험치는 0~99.999 사이로 입력해주세요.</div>`; return; }
+
+            let currentLevel = startLevel;
+            let currentExp = startExp;
+            let hyperUsed = false;
+            let beyondUsed = false;
+
+            for (let i = 0; i < quantity; i++) {
+                const currentRate = expData[currentLevel];
+                if (currentRate === undefined) break;
+                currentExp += currentRate;
+
+                while (currentExp >= 100) {
+                    const oldRate = expData[currentLevel];
+                    let levelsToAdd = 1;
+                    if (isBurning && currentLevel < 260) { levelsToAdd = 5; hyperUsed = true; }
+                    else if (isBeyond && currentLevel >= 260 && currentLevel <= 280) { levelsToAdd = 2; beyondUsed = true; }
+
+                    let targetLevel = currentLevel + levelsToAdd;
+                    if (targetLevel > 300) targetLevel = 300;
+                    const newRate = expData[targetLevel];
+                    if (newRate === undefined && targetLevel < 300) break;
+                    if (targetLevel >= 300) { currentLevel = 300; currentExp = 0; break; }
+
+                    const overflow = currentExp - 100;
+                    const adjustedOverflow = overflow * (newRate / oldRate);
+                    currentLevel = targetLevel;
+                    currentExp = adjustedOverflow;
+                }
+            }
+
+            const levelsGained = currentLevel - startLevel;
+            const notes = [];
+            if (hyperUsed) notes.push('하이퍼 버닝');
+            if (beyondUsed) notes.push('버닝 BEYOND');
+            const burnNote = notes.length ? ` (${notes.join(' · ')} 적용됨)` : '';
+
+            resultDiv.innerHTML = `
+                총 <strong class="res-hi">${levelsGained}</strong>레벨 상승${burnNote}
+                <br>
+                <strong class="res-main">사용 후 : ${currentLevel}레벨 ${currentExp.toFixed(3)}%</strong>
+                <div class="disclaimer">(약간의 차이가 있을 수 있습니다)</div>
+            `;
+        }
+
+        function populateQuantityOptions() {
+            const quantitySelect = document.getElementById('quantitySelect');
+            for (let i = 1; i <= 20; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `${i}개`;
+                quantitySelect.appendChild(option);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            populateQuantityOptions();
+            syncPlaceholder();
+
+            document.querySelectorAll('.potion-tile').forEach(tile => {
+                tile.addEventListener('click', function() {
+                    document.querySelectorAll('.potion-tile').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    selectedPotion = this.dataset.value;
+                    syncPlaceholder();
+                    if (document.getElementById('levelInput').value) calculateResult();
+                });
+            });
+
+            const allInputs = document.querySelectorAll('#levelInput, #expInput, #quantitySelect, #burningCheck, #beyondCheck');
+            function enterKeyHandler(event) { if (event.key === 'Enter') calculateResult(); }
+            allInputs.forEach(input => {
+                input.addEventListener('keyup', enterKeyHandler);
+                input.addEventListener('change', calculateResult);
+            });
+        });
+    </script>
+</body>
+</html>

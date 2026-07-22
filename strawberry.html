@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>딸기농장 메카베리 경험치 계산기</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<style>
+    :root{
+        --bg:#191f28; --surface:#202632; --surface-2:#2b323e; --line:#333b48;
+        --text:#f9fafb; --text-2:#b0b8c1; --muted:#8b95a1;
+        --blue:#3182f6; --blue-bright:#5b9dff; --lime:#d4ff00; --red:#f04452;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; background:var(--bg); color:var(--text);
+        font-family:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+        letter-spacing:-0.3px; -webkit-font-smoothing:antialiased; }
+    body{ padding:28px 16px 44px; }
+    .calculator-container{ width:100%; max-width:620px; margin:0 auto; padding:26px;
+        background:var(--surface); border:1px solid var(--line); border-radius:16px; text-align:center; }
+    .calculator-container h1{ color:var(--text); margin:0 0 22px; font-size:1.4em; font-weight:800;
+        display:flex; align-items:center; justify-content:center; gap:8px; }
+    .title-icon{ width:26px; height:26px; }
+
+    .input-grid{ display:flex; gap:10px; align-items:flex-start; margin-bottom:18px; }
+    .input-item{ display:flex; flex-direction:column; align-items:center; }
+    .item-level, .item-exp{ flex:1; } .item-count{ flex:0.6; }
+    .input-item label{ margin-bottom:8px; font-size:0.85em; color:var(--muted); font-weight:700; white-space:nowrap; }
+    .input-item input{ width:100%; padding:12px; height:48px; font-size:16px; text-align:center;
+        border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--text); }
+    .input-item input::placeholder{ color:#6b7684; }
+    .input-item input:focus{ outline:none; border-color:var(--blue); box-shadow:0 0 0 3px rgba(49,130,246,0.2); }
+    input[type="number"]::-webkit-outer-spin-button,input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+    input[type="number"]{ -moz-appearance:textfield; }
+
+    .version-toggle{ display:flex; gap:8px; margin-bottom:20px; }
+    .version-btn{ flex:1; padding:12px 8px; font-size:0.9em; font-weight:700; cursor:pointer;
+        border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--text-2);
+        font-family:inherit; letter-spacing:-0.3px; transition:.15s; }
+    .version-btn:hover{ border-color:var(--blue); color:var(--text); }
+    .version-btn.active{ background:var(--blue); border-color:var(--blue); color:#fff; }
+
+    .main-calc-button{ width:100%; padding:14px 20px; border:none; border-radius:11px;
+        background:var(--blue); color:#fff; font-size:16px; font-weight:700; cursor:pointer;
+        font-family:inherit; letter-spacing:-0.3px; transition:background-color .15s; }
+    .main-calc-button:hover{ background:#1f6fe8; }
+    .main-calc-button:active{ transform:translateY(1px); }
+
+    #result{ margin-top:20px; padding:18px; background:#12161d; border:1px solid var(--line);
+        border-radius:12px; min-height:28px; line-height:1.8; font-size:1.05em; text-align:center; color:var(--text-2); }
+    .result-placeholder{ color:#6b7684; }
+    .error-message{ font-weight:700; color:var(--red); }
+    .result-version{ font-size:0.85em; color:var(--blue-bright); font-weight:700; margin-bottom:6px; }
+    .res-hi{ color:var(--lime); font-weight:800; }
+    .res-main{ color:var(--blue-bright); font-weight:800; display:inline-block; margin-top:6px; font-size:1.05em; }
+    .disclaimer{ font-size:0.8em; color:#6b7684; margin-top:8px; }
+
+    @media (max-width:600px){
+        .input-grid{ flex-direction:column; gap:0; }
+        .input-item{ margin-bottom:14px; width:100%; }
+        .calculator-container h1{ font-size:1.2em; }
+    }
+</style>
+</head>
+<body>
+    <div class="calculator-container">
+        <h1>
+            <img src="https://k.kakaocdn.net/dn/cF44im/dJMb99SzT9W/AAAAAAAAAAAAAAAAAAAAAH1PrvIq2N2oGXBg_7kga2HV_I01YDbXEkjZIWtuhiUi/img.png" class="title-icon" alt="아이콘">
+            딸기농장 메카베리 계산기
+        </h1>
+
+        <div class="input-grid">
+            <div class="input-item item-level">
+                <label for="levelInput">캐릭터 레벨</label>
+                <input type="number" id="levelInput" inputmode="numeric" min="280" max="299" step="1" placeholder="280~299">
+            </div>
+            <div class="input-item item-exp">
+                <label for="expInput">현재 경험치 (%)</label>
+                <input type="number" id="expInput" inputmode="decimal" min="0" max="99.999" step="0.001" placeholder="기본값 0%">
+            </div>
+            <div class="input-item item-count">
+                <label for="quantityInput">사용 수량</label>
+                <input type="number" id="quantityInput" inputmode="numeric" min="1" max="15" step="1" placeholder="1~15">
+            </div>
+        </div>
+
+        <div class="version-toggle" role="group" aria-label="패치 버전 선택">
+            <button type="button" class="version-btn active" data-version="overdrive">OVERDRIVE 패치 버전</button>
+            <button type="button" class="version-btn" data-version="pre">패치 전 버전</button>
+        </div>
+
+        <button type="button" id="calcButton" class="main-calc-button">계산하기</button>
+
+        <div id="result" aria-live="polite">
+            <div class="result-placeholder">정보를 입력하고 계산하기를 눌러주세요.</div>
+        </div>
+    </div>
+
+    <script>
+        "use strict";
+
+        // 레벨별 메카베리 1개당 경험치 획득률(%)
+        const EXP_DATA_PRE = {
+            280: 9.705, 281: 8.943, 282: 8.228, 283: 7.580, 284: 6.973,
+            285: 5.174, 286: 4.758, 287: 4.382, 288: 4.035, 289: 3.710,
+            290: 2.236, 291: 2.055, 292: 1.892, 293: 1.741, 294: 1.600,
+            295: 0.792, 296: 0.720, 297: 0.655, 298: 0.595, 299: 0.595
+        };
+        const EXP_DATA_OVERDRIVE = {
+            280: 9.705, 281: 8.943, 282: 8.228, 283: 7.580, 284: 6.973,
+            285: 5.174, 286: 4.758, 287: 4.382, 288: 4.035, 289: 3.710,
+            290: 2.236, 291: 2.055, 292: 1.892, 293: 1.741, 294: 1.600,
+            295: 0.890, 296: 0.819, 297: 0.754, 298: 0.692, 299: 0.467
+        };
+
+        const DATASETS = {
+            pre:       { label: "패치 전 버전",        data: EXP_DATA_PRE },
+            overdrive: { label: "OVERDRIVE 패치 버전", data: EXP_DATA_OVERDRIVE }
+        };
+        const CONFIG = { MIN_LEVEL: 280, MAX_LEVEL: 299, MAX_QTY: 15 };
+        let currentVersion = "overdrive";
+
+        const els = {
+            level: document.getElementById("levelInput"),
+            exp: document.getElementById("expInput"),
+            qty: document.getElementById("quantityInput"),
+            result: document.getElementById("result"),
+            button: document.getElementById("calcButton"),
+            versionButtons: document.querySelectorAll(".version-btn")
+        };
+
+        function showError(message) { els.result.innerHTML = '<div class="error-message">' + message + '</div>'; }
+
+        function readInputs() {
+            if (els.level.value === "") return { error: "레벨을 입력해주세요." };
+            if (els.qty.value === "")   return { error: "수량을 입력해주세요." };
+
+            const level = parseInt(els.level.value, 10);
+            const exp = els.exp.value === "" ? 0 : parseFloat(els.exp.value);
+            const qty = parseInt(els.qty.value, 10);
+
+            if (level < CONFIG.MIN_LEVEL) return { error: CONFIG.MIN_LEVEL + "레벨부터 지원합니다." };
+            if (level > CONFIG.MAX_LEVEL) return { error: (CONFIG.MAX_LEVEL + 1) + "레벨 이상은 없습니다." };
+            if (isNaN(exp) || exp < 0 || exp >= 100) return { error: "경험치는 0~99.999 사이로 입력해주세요." };
+            if (isNaN(qty) || qty < 1 || qty > CONFIG.MAX_QTY) return { error: "수량은 1~" + CONFIG.MAX_QTY + "개 사이로 입력해주세요." };
+
+            return { level, exp, qty };
+        }
+
+        function simulate(expData, startLevel, startExp, quantity) {
+            let level = startLevel;
+            let exp = startExp;
+            let totalGained = 0;
+
+            for (let i = 0; i < quantity; i++) {
+                const rate = expData[level];
+                if (rate === undefined) break;
+                totalGained += rate;
+                exp += rate;
+
+                while (exp >= 100) {
+                    const thisRate = expData[level];
+                    const nextRate = expData[level + 1];
+                    if (nextRate === undefined) { exp = 100; break; }
+                    const overflow = exp - 100;
+                    level += 1;
+                    exp = overflow * (nextRate / thisRate);
+                }
+            }
+            return { totalGained, level, exp };
+        }
+
+        function calculateResult() {
+            const input = readInputs();
+            if (input.error) { showError(input.error); return; }
+
+            const version = DATASETS[currentVersion];
+            const r = simulate(version.data, input.level, input.exp, input.qty);
+
+            els.result.innerHTML =
+                '<div class="result-version">[' + version.label + ']</div>' +
+                '총 <strong class="res-hi">' + r.totalGained.toFixed(3) + '%</strong> 경험치 획득' +
+                '<br>' +
+                '<strong class="res-main">사용 후 : ' + r.level + '레벨 ' + r.exp.toFixed(3) + '%</strong>' +
+                '<div class="disclaimer">(약간의 차이가 있을 수 있습니다)</div>';
+        }
+
+        function setVersion(version) {
+            currentVersion = version;
+            els.versionButtons.forEach(function (btn) { btn.classList.toggle("active", btn.dataset.version === version); });
+            if (els.level.value !== "" && els.qty.value !== "") calculateResult();
+        }
+
+        els.button.addEventListener("click", calculateResult);
+        els.versionButtons.forEach(function (btn) { btn.addEventListener("click", function () { setVersion(btn.dataset.version); }); });
+        [els.level, els.exp, els.qty].forEach(function (input) {
+            input.addEventListener("keyup", function (e) { if (e.key === "Enter") calculateResult(); });
+        });
+    </script>
+</body>
+</html>

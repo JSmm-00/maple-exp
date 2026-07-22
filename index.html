@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>메이플 경험치 계산기</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<style>
+    :root {
+        --bg: #191f28;
+        --surface: #202632;
+        --surface-2: #2b323e;
+        --line: #333b48;
+        --text: #f9fafb;
+        --text-2: #b0b8c1;
+        --muted: #8b95a1;
+        --blue: #3182f6;
+        --lime: #d4ff00;
+        --red: #f04452;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+        margin: 0; padding: 0;
+        background-color: var(--bg); color: var(--text);
+        font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+        letter-spacing: -0.3px;
+        -webkit-font-smoothing: antialiased;
+    }
+    body { padding: 28px 16px 48px; }
+    .hub { width: 100%; max-width: 680px; margin: 0 auto; }
+
+    /* 헤더 */
+    .hub-header { text-align: center; margin-bottom: 24px; }
+    .hub-header h1 { margin: 0; font-size: 1.55em; font-weight: 800; color: var(--text); }
+    .hub-header .accent { color: var(--lime); }
+    .hub-header p { margin: 8px 0 0; font-size: 0.92em; color: var(--muted); font-weight: 500; }
+
+    /* 카드 공통 */
+    .card {
+        background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px;
+    }
+
+    /* 닉네임 검색 */
+    .search-card { margin-bottom: 24px; }
+    .search-label { font-size: 0.95em; font-weight: 700; margin-bottom: 12px; color: var(--text); }
+    .search-row { display: flex; gap: 8px; }
+    .search-row input {
+        flex: 1; box-sizing: border-box; padding: 14px 15px; border-radius: 11px;
+        border: 1px solid var(--line); background: var(--bg); color: var(--text);
+        font-size: 15px; font-family: inherit; letter-spacing: -0.3px;
+    }
+    .search-row input::placeholder { color: #6b7684; }
+    .search-row input:focus { outline: none; border-color: var(--blue); }
+    .search-row button {
+        flex: 0 0 auto; padding: 0 24px; border: none; border-radius: 11px;
+        background: var(--blue); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+        font-family: inherit; letter-spacing: -0.3px; transition: background-color 0.15s;
+    }
+    .search-row button:hover { background: #1f6fe8; }
+    .search-row button:active { transform: translateY(1px); }
+
+    /* 검색 결과 */
+    .char-result { margin-top: 18px; }
+    .char-result .placeholder { color: #6b7684; font-size: 0.9em; text-align: center; padding: 12px 0; }
+    .char-result .err { color: var(--red); font-weight: 700; font-size: 0.9em; text-align: center; padding: 12px 0; }
+    .ci-name { font-size: 1.3em; font-weight: 800; color: var(--text); }
+    .ci-meta { margin-top: 5px; font-size: 0.9em; color: var(--text-2); font-weight: 500; }
+    .ci-exp { margin-top: 18px; }
+    .ci-exp-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.9em; margin-bottom: 8px; }
+    .ci-exp-top .lbl { color: var(--muted); font-weight: 500; }
+    .ci-exp-top .val { color: var(--lime); font-weight: 800; font-size: 1.05em; }
+    .ci-bar { width: 100%; height: 12px; background: #12161d; border-radius: 6px; overflow: hidden; }
+    .ci-bar-fill { height: 100%; width: 0; background: linear-gradient(90deg, #a9cc2b, var(--lime)); border-radius: 6px; transition: width 0.5s ease; }
+    .ci-date { margin-top: 12px; font-size: 0.8em; color: #6b7684; text-align: right; }
+
+    /* 계산기 목록 */
+    .menu-title { font-size: 1.02em; font-weight: 700; margin: 0 0 14px 2px; color: var(--text); }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .cat-card {
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+        background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+        padding: 24px 12px; min-height: 126px; text-align: center; text-decoration: none;
+        color: var(--text); cursor: pointer;
+        transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s, transform 0.05s;
+    }
+    .cat-card:hover {
+        border-color: var(--blue); background: var(--surface-2);
+        box-shadow: 0 4px 16px rgba(49, 130, 246, 0.18);
+    }
+    .cat-card:active { transform: translateY(1px); }
+    .cat-icon {
+        width: 46px; height: 46px; border-radius: 12px; background: var(--surface-2);
+        display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .cat-icon img { width: 46px; height: 46px; object-fit: cover; }
+    .cat-name { font-size: 0.92em; font-weight: 700; line-height: 1.35; word-break: keep-all; color: var(--text); }
+
+    .hub-foot { margin-top: 24px; text-align: center; font-size: 0.78em; color: #6b7684; }
+
+    @media (max-width: 560px) {
+        .grid { grid-template-columns: repeat(2, 1fr); }
+        .card { padding: 18px; }
+    }
+</style>
+</head>
+<body>
+<div class="hub">
+    <div class="hub-header">
+        <h1>메이플 <span class="accent">경험치</span> 계산기</h1>
+        <p>닉네임 검색 · 콘텐츠별 경험치 계산</p>
+    </div>
+
+    <!-- 닉네임 검색 (캐릭터 및 경험치) -->
+    <div class="card search-card">
+        <div class="search-label">닉네임 검색</div>
+        <div class="search-row">
+            <input id="charName" type="text" placeholder="캐릭터 닉네임을 입력하세요" />
+            <button type="button" onclick="fetchCharacter()">검색</button>
+        </div>
+        <div id="charResult" class="char-result">
+            <div class="placeholder">닉네임을 검색하면 캐릭터 정보와 현재 경험치가 표시됩니다.</div>
+        </div>
+    </div>
+
+    <!-- 계산기 목록 -->
+    <div class="menu">
+        <h2 class="menu-title">계산기 선택</h2>
+        <div class="grid">
+            <!-- href="#" 자리에 각 계산기 페이지 주소를 넣으세요 -->
+            <a class="cat-card" href="mvp-vip.html">
+                <span class="cat-icon"><img src="" alt="" onerror="this.style.display='none'"></span>
+                <span class="cat-name">MVP리조트 &amp;<br>VIP 사우나</span>
+            </a>
+            <a class="cat-card" href="exp-coupon.html">
+                <span class="cat-icon"><img src="" alt="" onerror="this.style.display='none'"></span>
+                <span class="cat-name">EXP 교환권</span>
+            </a>
+            <a class="cat-card" href="growth-potion.html">
+                <span class="cat-icon"><img src="" alt="" onerror="this.style.display='none'"></span>
+                <span class="cat-name">성장의 비약</span>
+            </a>
+            <a class="cat-card" href="strawberry.html">
+                <span class="cat-icon"><img src="" alt="" onerror="this.style.display='none'"></span>
+                <span class="cat-name">딸기농장</span>
+            </a>
+            <a class="cat-card" href="monster-park.html">
+                <span class="cat-icon"><img src="" alt="" onerror="this.style.display='none'"></span>
+                <span class="cat-name">몬스터 파크</span>
+            </a>
+            <a class="cat-card" href="epic-dungeon.html">
+                <span class="cat-icon"><img src="" alt="" onerror="this.style.display='none'"></span>
+                <span class="cat-name">에픽던전</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="hub-foot">※ 캐릭터 정보는 넥슨 오픈 API 기준(보통 전일 데이터)입니다.</div>
+</div>
+
+<script src="config.js"></script>
+<script>
+    // 프록시 주소는 config.js 에서 한 번만 설정합니다.
+    const MAPLE_PROXY_URL = (window.MAPLE_PROXY_URL || "").trim();
+
+    async function fetchCharacter() {
+        const nameEl = document.getElementById('charName');
+        const box = document.getElementById('charResult');
+        const name = (nameEl.value || '').trim();
+
+        if (!name) { box.innerHTML = '<div class="err">캐릭터 닉네임을 입력하세요.</div>'; return; }
+        if (!MAPLE_PROXY_URL) { box.innerHTML = '<div class="err">config.js 에 Worker 주소를 먼저 입력하세요.</div>'; return; }
+
+        box.innerHTML = '<div class="placeholder">조회 중...</div>';
+        try {
+            const res = await fetch(MAPLE_PROXY_URL.replace(/\/$/, '') + '/?name=' + encodeURIComponent(name));
+            const data = await res.json();
+            if (!res.ok || data.error) {
+                box.innerHTML = '<div class="err">' + (data.error || '조회에 실패했습니다.') + '</div>';
+                return;
+            }
+            const rate = parseFloat(data.character_exp_rate);
+            const rateStr = isNaN(rate) ? '-' : rate.toFixed(3);
+            const width = isNaN(rate) ? 0 : Math.min(rate, 100);
+            const baseDate = data.date ? String(data.date).slice(0, 10) : '';
+
+            box.innerHTML =
+                '<div class="ci-name">' + (data.character_name || name) + '</div>' +
+                '<div class="ci-meta">' + [data.world_name, data.character_class, 'Lv.' + data.character_level].filter(Boolean).join(' · ') + '</div>' +
+                '<div class="ci-exp">' +
+                    '<div class="ci-exp-top"><span class="lbl">현재 경험치</span><span class="val">' + rateStr + '%</span></div>' +
+                    '<div class="ci-bar"><div class="ci-bar-fill" style="width:' + width + '%"></div></div>' +
+                '</div>' +
+                (baseDate ? '<div class="ci-date">기준일 ' + baseDate + '</div>' : '');
+        } catch (e) {
+            box.innerHTML = '<div class="err">조회 중 오류가 발생했습니다. (주소/네트워크 확인)</div>';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const input = document.getElementById('charName');
+        if (input) input.addEventListener('keyup', function(e) { if (e.key === 'Enter') fetchCharacter(); });
+    });
+</script>
+</body>
+</html>

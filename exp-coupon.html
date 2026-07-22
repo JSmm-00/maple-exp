@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EXP 교환권 계산기</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<style>
+    :root{
+        --bg:#191f28; --surface:#202632; --surface-2:#2b323e; --line:#333b48;
+        --text:#f9fafb; --text-2:#b0b8c1; --muted:#8b95a1;
+        --blue:#3182f6; --blue-bright:#5b9dff; --lime:#d4ff00; --red:#f04452;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; background:var(--bg); color:var(--text);
+        font-family:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+        letter-spacing:-0.3px; -webkit-font-smoothing:antialiased; }
+    body{ padding:28px 16px 44px; }
+    .calculator-container{ width:100%; max-width:620px; margin:0 auto; padding:26px;
+        background:var(--surface); border:1px solid var(--line); border-radius:16px; text-align:center; }
+    .calculator-container h1{ color:var(--text); margin:0 0 22px; font-size:1.4em; font-weight:800;
+        display:flex; align-items:center; justify-content:center; gap:8px; }
+    .title-icon{ width:26px; height:26px; }
+
+    .version-toggle{ display:flex; gap:8px; margin-bottom:18px; }
+    .version-btn{ flex:1; padding:12px 8px; font-size:0.9em; font-weight:700; cursor:pointer;
+        border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--text-2);
+        font-family:inherit; letter-spacing:-0.3px; transition:.15s; }
+    .version-btn:hover{ border-color:var(--blue); color:var(--text); }
+    .version-btn.active{ background:var(--blue); border-color:var(--blue); color:#fff; }
+
+    .input-grid{ display:flex; gap:10px; align-items:flex-start; margin-bottom:20px; }
+    .input-item{ display:flex; flex-direction:column; align-items:center; flex:1; }
+    .input-item label{ margin-bottom:8px; font-size:0.85em; color:var(--muted); font-weight:700; white-space:nowrap; }
+    .input-item input{ width:100%; padding:12px; height:48px; font-size:16px; text-align:center;
+        border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--text); }
+    .input-item input::placeholder{ color:#6b7684; }
+    .input-item input:focus{ outline:none; border-color:var(--blue); box-shadow:0 0 0 3px rgba(49,130,246,0.2); }
+    input[type="number"]::-webkit-outer-spin-button,input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+    input[type="number"]{ -moz-appearance:textfield; }
+
+    .main-calc-button{ width:100%; padding:14px 20px; border:none; border-radius:11px;
+        background:var(--blue); color:#fff; font-size:16px; font-weight:700; cursor:pointer;
+        font-family:inherit; letter-spacing:-0.3px; transition:background-color .15s; }
+    .main-calc-button:hover{ background:#1f6fe8; }
+    .main-calc-button:active{ transform:translateY(1px); }
+
+    #result{ margin-top:20px; padding:18px; background:#12161d; border:1px solid var(--line);
+        border-radius:12px; min-height:28px; line-height:1.8; font-size:1.05em; text-align:center; color:var(--text-2); }
+    .result-placeholder{ color:#6b7684; font-weight:normal; }
+    .error-message{ font-weight:700; color:var(--red); }
+    .result-version{ font-size:0.85em; color:var(--blue-bright); font-weight:700; margin-bottom:6px; }
+    .res-hi{ color:var(--lime); font-weight:800; }
+    .res-main{ color:var(--blue-bright); font-weight:800; display:inline-block; margin-top:6px; font-size:1.05em; }
+    .disclaimer{ font-size:0.8em; color:#6b7684; margin-top:8px; }
+
+    @media (max-width:600px){
+        .input-grid{ flex-direction:column; gap:0; }
+        .input-item{ margin-bottom:14px; width:100%; }
+        .calculator-container h1{ font-size:1.2em; }
+    }
+</style>
+</head>
+<body>
+    <div class="calculator-container">
+        <h1>
+            <img src="https://k.kakaocdn.net/dn/pvgL0/btsQBq1xXyg/AAAAAAAAAAAAAAAAAAAAAH4MrK_cIm1rPMnnz9h3MnPxaXRlo_HKQYuNPvxnU5OC/img.png" class="title-icon" alt="icon">
+            EXP 교환권 계산기
+        </h1>
+
+        <div class="version-toggle" role="group" aria-label="쿠폰 종류 선택">
+            <button type="button" class="version-btn active" data-mode="normal">일반 EXP 쿠폰 (200~259)</button>
+            <button type="button" class="version-btn" data-mode="advanced">상급 EXP 쿠폰 (260~299)</button>
+        </div>
+
+        <div class="input-grid">
+            <div class="input-item item-level">
+                <label for="levelInput">캐릭터 레벨</label>
+                <input type="number" id="levelInput" placeholder="200~259">
+            </div>
+            <div class="input-item item-exp">
+                 <label for="expInput">현재 경험치 (%)</label>
+                 <input type="number" id="expInput" placeholder="기본값 0%">
+            </div>
+            <div class="input-item item-count">
+                 <label for="quantityInput">사용 수량</label>
+                 <input type="number" id="quantityInput" placeholder="개수 입력">
+            </div>
+        </div>
+
+        <button onclick="calculateResult()" class="main-calc-button">계산하기</button>
+
+        <div id="result">
+            <div class="result-placeholder">정보를 입력하고 계산하기를 눌러주세요.</div>
+        </div>
+    </div>
+
+    <script>
+        // 일반 EXP 쿠폰: 레벨당 1개 사용 시 상승 경험치(%) → 필요 개수로 환산
+        const expDataNormal = {
+            "200":0.3355,"201":0.3077,"202":0.2820,"203":0.2591,"204":0.2373,"205":0.2172,"206":0.1988,"207":0.1823,"208":0.1667,"209":0.1524,"210":0.2338,
+            "211":0.2154,"212":0.1990,"213":0.1832,"214":0.1687,"215":0.1329,"216":0.1245,"217":0.1169,"218":0.1094,"219":0.1027,"220":0.0806,"221":0.0769,
+            "222":0.0733,"223":0.0700,"224":0.0667,"225":0.0524,"226":0.0499,"227":0.0475,"228":0.0453,"229":0.0432,"230":0.0353,"231":0.0349,"232":0.0345,
+            "233":0.0341,"234":0.0337,"235":0.0264,"236":0.0261,"237":0.0258,"238":0.0255,"239":0.0252,"240":0.0197,"241":0.0197,"242":0.0195,"243":0.0192,
+            "244":0.0190,"245":0.0148,"246":0.0146,"247":0.0145,"248":0.0143,"249":0.0141,"250":0.0099,"251":0.0098,"252":0.0096,"253":0.0095,"254":0.0094,
+            "255":0.0092,"256":0.0091,"257":0.0090,"258":0.0088,"259":0.0087
+        };
+        const requiredNormal = {};
+        for (const [lvl, percent] of Object.entries(expDataNormal)) { requiredNormal[lvl] = Math.ceil(100 / percent); }
+
+        // 상급 EXP 쿠폰: 레벨별 필요 개수(직접 제공)
+        const requiredAdvanced = {
+            "260":4462,"261":4442,"262":4424,"263":4406,"264":4382,"265":5063,"266":5044,"267":5026,"268":5001,"269":4984,
+            "270":9838,"271":9792,"272":9763,"273":9735,"274":9692,"275":17419,"276":19822,"277":20525,"278":22301,"279":24196,
+            "280":43523,"281":47231,"282":51337,"283":55724,"284":60579,"285":108856,"286":113863,"287":128528,"288":139577,"289":151809,
+            "290":272885,"291":300174,"292":330191,"293":363210,"294":399531,"295":480753,"296":887758,"297":976533,"298":1074187,"299":1611280
+        };
+
+        const MODES = {
+            normal:   { label:"일반 EXP 쿠폰",  req:requiredNormal,   min:200, max:259, ph:"200~259" },
+            advanced: { label:"상급 EXP 쿠폰",  req:requiredAdvanced, min:260, max:299, ph:"260~299" }
+        };
+        let currentMode = "normal";
+
+        function calculateResult() {
+            const mode = MODES[currentMode];
+            const levelInput = document.getElementById('levelInput');
+            const expInput = document.getElementById('expInput');
+            const quantityInput = document.getElementById('quantityInput');
+            const resultDiv = document.getElementById('result');
+
+            if (!levelInput.value) { resultDiv.innerHTML = `<div class="error-message">레벨을 입력해주세요.</div>`; return; }
+            if (!quantityInput.value) { resultDiv.innerHTML = `<div class="error-message">사용 수량을 입력해주세요.</div>`; return; }
+
+            const startLevel = parseInt(levelInput.value, 10);
+            const startExp = parseFloat(expInput.value) || 0;
+            const quantity = parseInt(quantityInput.value, 10);
+            const req = mode.req;
+
+            if (startLevel < mode.min || startLevel > mode.max) {
+                resultDiv.innerHTML = `<div class="error-message">${mode.min}~${mode.max} 레벨만 가능합니다.</div>`; return;
+            }
+            if (req[startLevel] === undefined) { resultDiv.innerHTML = `<div class="error-message">데이터 오류: 해당 레벨 정보가 없습니다.</div>`; return; }
+            if (startExp < 0 || startExp >= 100) { resultDiv.innerHTML = `<div class="error-message">경험치는 0~99.999 사이로 입력해주세요.</div>`; return; }
+            if (quantity <= 0) { resultDiv.innerHTML = `<div class="error-message">수량은 1개 이상이어야 합니다.</div>`; return; }
+
+            let currentLevel = startLevel;
+            const startReqQty = req[startLevel];
+            let currentQuantityUsedInLevel = Math.floor(startReqQty * (startExp / 100));
+            let remainingQuantity = quantity;
+
+            while (remainingQuantity > 0) {
+                const reqQty = req[currentLevel];
+                if (!reqQty) break;
+                const neededForLevelUp = reqQty - currentQuantityUsedInLevel;
+                const canUse = Math.min(neededForLevelUp, remainingQuantity);
+                currentQuantityUsedInLevel += canUse;
+                remainingQuantity -= canUse;
+                if (currentQuantityUsedInLevel >= reqQty) { currentLevel++; currentQuantityUsedInLevel = 0; }
+                else break;
+            }
+
+            const levelsGained = currentLevel - startLevel;
+            let currentExpPercent = 0;
+            if (req[currentLevel]) { currentExpPercent = (currentQuantityUsedInLevel / req[currentLevel]) * 100; }
+
+            resultDiv.innerHTML = `
+                <div class="result-version">[${mode.label}]</div>
+                총 <strong class="res-hi">${levelsGained}</strong>레벨 상승
+                <br>
+                <strong class="res-main">사용 후 : ${currentLevel}레벨 ${currentExpPercent.toFixed(2)}%</strong>
+                <div class="disclaimer">(약간의 차이가 있을 수 있습니다)</div>
+            `;
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.version-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
+            document.getElementById('levelInput').placeholder = MODES[mode].ph;
+            const lv = document.getElementById('levelInput').value;
+            const qty = document.getElementById('quantityInput').value;
+            if (lv !== "" && qty !== "") calculateResult();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.version-btn').forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
+            const allInputs = document.querySelectorAll('#levelInput, #expInput, #quantityInput');
+            allInputs.forEach(input => {
+                input.addEventListener('keyup', e => { if (e.key === 'Enter') calculateResult(); });
+                input.addEventListener('change', calculateResult);
+            });
+        });
+    </script>
+</body>
+</html>

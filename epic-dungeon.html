@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>에픽던전 경험치 계산기</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<style>
+    html,body{ margin:0; padding:0; background:#191f28; }
+    body{ padding:28px 16px 44px;
+        font-family:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Malgun Gothic',sans-serif; }
+    .epic-toggle{ width:100%; max-width:620px; margin:0 auto 14px; display:flex; gap:8px; }
+    .epic-toggle button{ flex:1; padding:12px 8px; font-size:0.92em; font-weight:700; cursor:pointer;
+        border:1px solid #333b48; border-radius:11px; background:#202632; color:#b0b8c1;
+        font-family:inherit; letter-spacing:-0.3px; transition:.15s; }
+    .epic-toggle button:hover{ border-color:#3182f6; color:#f9fafb; }
+    .epic-toggle button.active{ background:#3182f6; border-color:#3182f6; color:#fff; }
+</style>
+</head>
+<body>
+<script src="config.js"></script>
+    <div class="epic-toggle" role="group" aria-label="던전 선택">
+        <button type="button" data-target="hm" class="active">하이마운틴</button>
+        <button type="button" data-target="ac">앵글러 컴퍼니</button>
+        <button type="button" data-target="ns">악몽선경</button>
+    </div>
+
+    <div class="epic-panel" id="panel-hm">
+<div id="hm-calc-widget">
+    <h1><img class="title-icon" src="https://k.kakaocdn.net/dn/tXWcU/dJMcagcLAt0/AAAAAAAAAAAAAAAAAAAAAJTthQuAkQFj09Y0Fe4XY2nj_79otouhigzfjQfB7ZEe/img.png" alt="icon" /> 하이마운틴 경험치 계산기</h1>
+
+    <div class="char-lookup">
+        <input id="hm-charName" type="text" placeholder="캐릭터명 입력 → 레벨·경험치 자동 조회" />
+        <button type="button" class="char-btn" onclick="hmFetchCharacter()">조회</button>
+    </div>
+    <div id="hm-charStatus" class="char-status"></div>
+
+    <div class="inputs-row">
+        <div class="input-group"><label for="hm-levelInput">현재 레벨</label> <input id="hm-levelInput" type="number" placeholder="260 ~ 299" /></div>
+        <div class="input-group"><label for="hm-expInput">현재 경험치 (%)</label> <input id="hm-expInput" step="0.001" type="number" placeholder="예: 45.123" /></div>
+        <div class="input-group"><label for="hm-stepSelect">보너스 단계</label><select id="hm-stepSelect">
+            <option value="basic">기본 보상</option>
+            <option value="step1">EXP 1단계 (7,500 메포)</option>
+            <option value="step2">EXP 2단계 (30,000 메포)</option>
+        </select></div>
+    </div>
+
+    <!-- 옵션 구역: 버닝 BEYOND / 아티팩트+코어 -->
+    <div class="options-area">
+        <!-- 버닝 BEYOND -->
+        <div class="burning-box" id="hm-burningBtn" role="button" tabindex="0" onclick="toggleBurning()">
+            <span class="burning-icon-wrap">
+                <img class="burning-icon" id="hm-burningIcon" src="https://k.kakaocdn.net/dn/Xs1CG/dJMcahx922p/AAAAAAAAAAAAAAAAAAAAABVrNUru04FCMYFOUIeUyWv2NICez7cP3nTuDst-YYPv/img.png" alt="" />
+            </span>
+            <span class="burning-text">버닝 BEYOND</span>
+            <span class="burning-switch"><span class="burning-knob"></span></span>
+        </div>
+
+        <!-- 에테리온 아티팩트 + 코어 (하나의 UI) -->
+        <div class="artifact-core-box">
+            <div class="ac-top" id="hm-artifactBtn" role="button" tabindex="0" onclick="toggleArtifact()">
+                <span class="burning-icon-wrap">
+                    <img class="burning-icon" id="hm-artifactIcon" src="https://k.kakaocdn.net/dn/RnHPl/dJMcad3wFL9/AAAAAAAAAAAAAAAAAAAAAKtKoHNwpRg4ImB6VxgkC1NazPzObm1yLE-NdezWascq/img.png" alt="" />
+                </span>
+                <span class="burning-text">에테리온 아티팩트</span>
+                <span class="burning-switch"><span class="burning-knob"></span></span>
+            </div>
+            <div class="ac-divider"></div>
+            <div class="ac-core">
+                <span class="core-label">코어 레벨</span>
+                <div class="core-levels" id="hm-coreLevels">
+                    <button type="button" class="core-lv active" data-lv="0" onclick="selectCore(0)">0</button>
+                    <button type="button" class="core-lv" data-lv="1" onclick="selectCore(1)">1</button>
+                    <button type="button" class="core-lv" data-lv="2" onclick="selectCore(2)">2</button>
+                    <button type="button" class="core-lv" data-lv="3" onclick="selectCore(3)">3</button>
+                    <button type="button" class="core-lv" data-lv="4" onclick="selectCore(4)">4</button>
+                    <button type="button" class="core-lv" data-lv="5" onclick="selectCore(5)">5</button>
+                    <button type="button" class="core-lv" id="hm-core6Btn" data-lv="6" onclick="selectCore(6)">6</button>
+                </div>
+            </div>
+            <div class="ac-divider" id="hm-total25Divider"></div>
+            <div class="ac-total" id="hm-total25Btn" role="button" tabindex="0" onclick="toggleTotal25()">
+                <span class="core-label">코어 레벨 총합 25레벨</span>
+                <span class="burning-switch"><span class="burning-knob"></span></span>
+            </div>
+        </div>
+    </div>
+
+    <button class="calc-btn" onclick="calculateExp()">계산하기</button>
+    <div id="hm-result">
+        <div class="result-placeholder">레벨과 경험치를 입력하고<br />계산하기를 눌러주세요.</div>
+    </div>
+    <div id="hm-update-notice" class="update-notice">변경된 내용은 23일 오전 4시에 반영됩니다.</div>
+</div>
+
+<style>
+
+    #hm-calc-widget {
+        box-sizing: border-box; width: 100%; max-width: 620px; margin: 0 auto;
+        padding: 26px; background-color: #202632; border: 1px solid #333b48; border-radius: 16px;
+        text-align: center;
+        font-family: 'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+        letter-spacing: -0.3px; -webkit-font-smoothing: antialiased;
+    }
+    #hm-calc-widget h1 { color: #f9fafb; margin: 0 0 22px 0; font-size: 1.3em; font-weight: 800;
+        display: flex; align-items: center; justify-content: center; border: none; padding: 0; }
+    #hm-calc-widget .title-icon { width: 26px; height: 26px; margin-right: 8px; border: none; }
+
+    #hm-calc-widget .inputs-row { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
+    #hm-calc-widget .input-group { display: flex; flex-direction: column; align-items: center; }
+    #hm-calc-widget .input-group:nth-child(1) { flex: 0.9; }
+    #hm-calc-widget .input-group:nth-child(2) { flex: 1.1; }
+    #hm-calc-widget .input-group:nth-child(3) { flex: 1.4; }
+    #hm-calc-widget .input-group label { font-weight: 700; color: #8b95a1; font-size: 0.9em; margin-bottom: 8px; width: 100%; text-align: center; }
+
+    #hm-calc-widget input::-webkit-outer-spin-button,
+    #hm-calc-widget input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    #hm-calc-widget input[type=number] { -moz-appearance: textfield; }
+
+    #hm-calc-widget .input-group input,
+    #hm-calc-widget .input-group select {
+        box-sizing: border-box; width: 100%; padding: 11px 10px; border-radius: 8px;
+        border: 1px solid #333b48; font-size: 14px; background-color: #191f28; color: #f9fafb; text-align: center; font-family: inherit;
+    }
+    #hm-calc-widget .input-group input:focus,
+    #hm-calc-widget .input-group select:focus { outline: none; border-color: #3182f6; }
+    #hm-calc-widget .input-group input::placeholder { color: #6b7684; }
+
+    #hm-calc-widget .char-lookup { display: flex; gap: 8px; margin-bottom: 8px; }
+    #hm-calc-widget .char-lookup input { flex: 1; box-sizing: border-box; padding: 11px 12px; border-radius: 8px;
+        border: 1px solid #333b48; font-size: 14px; background-color: #191f28; color: #f9fafb; }
+    #hm-calc-widget .char-lookup input::placeholder { color: #6b7684; }
+    #hm-calc-widget .char-lookup input:focus { outline: none; border-color: #3182f6; }
+    #hm-calc-widget .char-btn { flex: 0 0 auto; padding: 0 18px; border: 1px solid #333b48; border-radius: 8px;
+        background-color: #2b323e; color: #f9fafb; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background-color 0.2s; }
+    #hm-calc-widget .char-btn:hover { background-color: #3a4453; }
+    #hm-calc-widget .char-status { min-height: 16px; margin-bottom: 14px; font-size: 0.82em; text-align: left; color: #8b95a1; }
+    #hm-calc-widget .char-status.ok { color: #5b9dff; font-weight: 700; }
+    #hm-calc-widget .char-status.err { color: #ff5b6e; font-weight: 700; }
+
+    #hm-calc-widget .options-area { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+
+    #hm-calc-widget .burning-box { display: flex; align-items: center; gap: 11px; padding: 11px 14px; border-radius: 10px;
+        border: 1px solid #333b48; background-color: #191f28; cursor: pointer; user-select: none; transition: border-color 0.2s, box-shadow 0.2s; }
+    #hm-calc-widget .burning-box:hover,
+    #hm-calc-widget .ac-top:hover { border-color: #3f4c60; }
+    #hm-calc-widget .burning-box.active { border-color: #ff8a3d; box-shadow: 0 2px 8px rgba(255,138,61,0.18); }
+
+    #hm-calc-widget .artifact-core-box { border: 1px solid #333b48; border-radius: 10px; background-color: #191f28; overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s; }
+    #hm-calc-widget .artifact-core-box:has(.ac-top.active),
+    #hm-calc-widget .artifact-core-box:has(.ac-total.active) { border-color: #ff8a3d; box-shadow: 0 2px 8px rgba(255,138,61,0.18); }
+    #hm-calc-widget .ac-top { display: flex; align-items: center; gap: 11px; padding: 11px 14px; cursor: pointer; user-select: none; }
+    #hm-calc-widget .ac-divider { height: 1px; background-color: #2b323e; }
+    #hm-calc-widget .ac-core { display: flex; align-items: center; gap: 10px; padding: 11px 14px; }
+    #hm-calc-widget .ac-total { display: flex; align-items: center; gap: 10px; padding: 11px 14px; cursor: pointer; user-select: none; }
+    #hm-calc-widget .ac-total.active .core-label { color: #ff8a3d; }
+    #hm-calc-widget .ac-total.active .burning-switch { background-color: #ff8a3d; }
+    #hm-calc-widget .ac-total.active .burning-knob { left: 22px; }
+    #hm-calc-widget .update-notice { margin-top: 14px; text-align: center; font-size: 0.85em; font-weight: 700; color: #ff8a3d; background-color: rgba(255,138,61,0.1); border: 1px solid rgba(255,138,61,0.35); border-radius: 8px; padding: 10px 12px; }
+
+    #hm-calc-widget .burning-icon-wrap { width: 26px; height: 26px; flex: 0 0 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; overflow: hidden; }
+    #hm-calc-widget .burning-icon { width: 26px; height: 26px; border-radius: 5px; object-fit: cover; }
+    #hm-calc-widget .burning-icon[src=""] { display: none; }
+
+    #hm-calc-widget .burning-text { font-size: 14px; font-weight: 700; color: #b0b8c1; letter-spacing: 0.2px; white-space: nowrap; }
+    #hm-calc-widget .burning-box.active .burning-text,
+    #hm-calc-widget .ac-top.active .burning-text { color: #ff8a3d; }
+
+    #hm-calc-widget .burning-switch { position: relative; width: 44px; height: 24px; flex: 0 0 44px; margin-left: auto; background-color: #3a4453; border-radius: 12px; transition: background-color 0.25s; }
+    #hm-calc-widget .burning-knob { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background-color: #ffffff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.4); transition: left 0.25s; }
+    #hm-calc-widget .burning-box.active .burning-switch,
+    #hm-calc-widget .ac-top.active .burning-switch { background-color: #ff8a3d; }
+    #hm-calc-widget .burning-box.active .burning-knob,
+    #hm-calc-widget .ac-top.active .burning-knob { left: 22px; }
+
+    #hm-calc-widget .core-label { font-size: 14px; font-weight: 700; color: #8b95a1; white-space: nowrap; }
+    #hm-calc-widget .core-levels { display: flex; gap: 6px; margin-left: auto; }
+    #hm-calc-widget .core-lv { width: 32px; height: 32px; padding: 0; border-radius: 6px; border: 1px solid #333b48; background-color: #191f28; color: #b0b8c1; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    #hm-calc-widget .core-lv:hover { border-color: #ff8a3d; }
+    #hm-calc-widget .core-lv.active { background-color: #ff8a3d; border-color: #ff8a3d; color: #191f28; }
+
+    #hm-calc-widget .calc-btn { width: 100%; padding: 14px; border: none; border-radius: 11px; background-color: #3182f6; color: white; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 4px; font-family: inherit; transition: background-color 0.2s; }
+    #hm-calc-widget .calc-btn:hover { background-color: #1f6fe8; }
+
+    #hm-calc-widget #hm-result { box-sizing: border-box; margin-top: 18px; padding: 20px 22px; background-color: #12161d; border-radius: 12px; border: 1px solid #333b48; line-height: 1.6; text-align: center; }
+    #hm-calc-widget .result-placeholder { color: #6b7684; font-size: 0.95em; }
+    #hm-calc-widget .error-message { color: #ff5b6e; font-weight: 700; font-size: 0.95em; }
+    #hm-calc-widget .congratulation-message { color: #5b9dff; font-weight: 700; font-size: 1.05em; }
+    #hm-calc-widget .result-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 1em; color: #b0b8c1; }
+    #hm-calc-widget .result-row:last-of-type { margin-bottom: 0; }
+    #hm-calc-widget .result-row .label { color: #8b95a1; }
+    #hm-calc-widget .result-row.total { margin-top: 14px; padding-top: 14px; border-top: 1px dashed #333b48; font-size: 1.18em; font-weight: 800; color: #f9fafb; }
+    #hm-calc-widget .highlight-gain { color: #5b9dff; font-weight: 700; }
+    #hm-calc-widget .highlight-levelup { color: #d4ff00; font-weight: 800; }
+    #hm-calc-widget .applied-opts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 12px 0 2px; padding-top: 12px; border-top: 1px solid #2b323e; }
+    #hm-calc-widget .opt-chip { font-size: 0.8em; font-weight: 600; color: #ff8a3d; background-color: rgba(255,138,61,0.1); border: 1px solid rgba(255,138,61,0.35); border-radius: 5px; padding: 3px 9px; white-space: nowrap; }
+    #hm-calc-widget .disclaimer-text { font-size: 0.85em; color: #6b7684; margin-top: 14px; text-align: center; }
+
+    @media (max-width: 640px) {
+        #hm-calc-widget { padding: 20px; }
+        #hm-calc-widget .inputs-row { flex-direction: column; gap: 14px; }
+        #hm-calc-widget .input-group:nth-child(1),
+        #hm-calc-widget .input-group:nth-child(2),
+        #hm-calc-widget .input-group:nth-child(3) { flex: 1; }
+        #hm-calc-widget #hm-result { padding: 18px; }
+    }
+
+</style>
+
+<script>
+    const expTable = {
+        260: 404360544196442n, 261: 421780246160883n, 262: 440098822763830n, 263: 459215920443024n, 264: 479165301664577n,
+        265: 757984773733353n, 266: 792593252389957n, 267: 828845463778740n, 268: 866801987605744n, 269: 906535466547402n,
+        270: 1883674834103118n, 271: 1968439701637759n, 272: 2057019488211458n, 273: 2149585365180974n, 274: 2246316706614118n,
+        275: 4672338749757360n, 276: 4882594008506000n, 277: 5102310723280000n, 278: 5331914697000000n, 279: 5571850845000000n,
+        280: 11645168266000000n, 281: 12169200838000000n, 282: 12716814876000000n, 283: 13289071545000000n, 284: 13887079765000000n,
+        285: 29023996709000000n, 286: 30330076561000000n, 287: 31694930006000000n, 288: 33121201856000000n, 289: 34611655940000000n,
+        290: 72338360915000000n, 291: 75593587156000000n, 292: 78995298578000000n, 293: 82550087014000000n, 294: 86264840930000000n,
+        295: 180293517544000000n, 296: 188406725833000000n, 297: 196885028496000000n, 298: 205744854778000000n, 299: 215003373243000000n
+    };
+
+    const hmLevelData = {
+        "260": { basic: "15.0700", step1: "75.3500", step2: "135.6300" },
+        "261": { basic: "15.1323", step1: "75.6615", step2: "136.1907" },
+        "262": { basic: "15.1976", step1: "75.9880", step2: "136.7784" },
+        "263": { basic: "15.2544", step1: "76.2720", step2: "137.2896" },
+        "264": { basic: "15.3420", step1: "76.7100", step2: "138.0780" },
+        "265": { basic: "13.2783", step1: "66.3915", step2: "119.5047" },
+        "266": { basic: "13.3286", step1: "66.6430", step2: "119.9574" },
+        "267": { basic: "13.3765", step1: "66.8825", step2: "120.3885" },
+        "268": { basic: "13.4429", step1: "67.2145", step2: "120.9861" },
+        "269": { basic: "13.4862", step1: "67.4310", step2: "121.3758" },
+        "270": { basic: "6.3557", step1: "31.7785", step2: "57.2013" },
+        "271": { basic: "6.5909", step1: "32.9545", step2: "59.3181" },
+        "272": { basic: "6.6090", step1: "33.0450", step2: "59.4810" },
+        "273": { basic: "6.9004", step1: "34.5020", step2: "62.1036" },
+        "274": { basic: "6.9351", step1: "34.6755", step2: "62.4159" },
+        "275": { basic: "3.8586", step1: "19.2930", step2: "34.7274" },
+        "276": { basic: "3.5518", step1: "17.7590", step2: "31.9662" },
+        "277": { basic: "3.2761", step1: "16.3805", step2: "29.4849" },
+        "278": { basic: "3.0146", step1: "15.0730", step2: "27.1314" },
+        "279": { basic: "2.7772", step1: "13.8860", step2: "24.9948" },
+        "280": { basic: "1.5442", step1: "7.7210", step2: "13.8978" },
+        "281": { basic: "1.4230", step1: "7.1150", step2: "12.8070" },
+        "282": { basic: "1.3091", step1: "6.5455", step2: "11.7819" },
+        "283": { basic: "1.2062", step1: "6.0310", step2: "10.8558" },
+        "284": { basic: "1.1095", step1: "5.5475", step2: "9.9855" },
+        "285": { basic: "0.6174", step1: "3.0870", step2: "5.5566" },
+        "286": { basic: "0.5679", step1: "2.8395", step2: "5.1111" },
+        "287": { basic: "0.5229", step1: "2.6145", step2: "4.7061" },
+        "288": { basic: "0.4815", step1: "2.4075", step2: "4.3335" },
+        "289": { basic: "0.4427", step1: "2.2135", step2: "3.9843" },
+        "290": { basic: "0.2463", step1: "1.2315", step2: "2.2167" },
+        "291": { basic: "0.2264", step1: "1.1320", step2: "2.0376" },
+        "292": { basic: "0.2084", step1: "1.0420", step2: "1.8756" },
+        "293": { basic: "0.1917", step1: "0.9585", step2: "1.7253" },
+        "294": { basic: "0.1763", step1: "0.8815", step2: "1.5867" },
+        "295": { basic: "0.0873", step1: "0.4365", step2: "0.7857" },
+        "296": { basic: "0.0793", step1: "0.3965", step2: "0.7137" },
+        "297": { basic: "0.0721", step1: "0.3605", step2: "0.6489" },
+        "298": { basic: "0.0656", step1: "0.3280", step2: "0.5904" },
+        "299": { basic: "0.0437", step1: "0.2185", step2: "0.3933" }
+    };
+
+    // 프록시 주소는 config.js 에서 한 번만 설정합니다.
+    const HM_PROXY_URL = (window.MAPLE_PROXY_URL || "").trim();
+
+    async function hmFetchCharacter() {
+        const nameEl = document.getElementById('hm-charName');
+        const status = document.getElementById('hm-charStatus');
+        const name = (nameEl.value || '').trim();
+
+        if (!name) { status.className = 'char-status err'; status.textContent = '캐릭터명을 입력하세요.'; return; }
+        if (!HM_PROXY_URL) { status.className = 'char-status err'; status.textContent = 'config.js 에 Worker 주소를 먼저 입력하세요.'; return; }
+
+        status.className = 'char-status';
+        status.textContent = '조회 중...';
+        try {
+            const res = await fetch(HM_PROXY_URL.replace(/\/$/, '') + '/?name=' + encodeURIComponent(name));
+            const data = await res.json();
+            if (!res.ok || data.error) {
+                status.className = 'char-status err';
+                status.textContent = data.error || '조회에 실패했습니다.';
+                return;
+            }
+            // 레벨/경험치 자동 채우기
+            document.getElementById('hm-levelInput').value = data.character_level;
+            const rate = parseFloat(data.character_exp_rate);
+            document.getElementById('hm-expInput').value = isNaN(rate) ? '' : rate;
+
+            const baseDate = data.date ? String(data.date).slice(0, 10) : '';
+            status.className = 'char-status ok';
+            status.textContent = `${data.character_name} · ${data.world_name || ''} · Lv.${data.character_level}` + (baseDate ? ` (기준일 ${baseDate})` : '');
+        } catch (e) {
+            status.className = 'char-status err';
+            status.textContent = '조회 중 오류가 발생했습니다. (주소/네트워크 확인)';
+        }
+    }
+
+    // 버닝 BEYOND 상태
+    let hmBurningOn = false;
+
+    // 아티팩트 / 코어 상태 및 보너스 값 (단위: %)
+    let hmArtifactOn = false;      // 아티팩트 활성화 시 +150%
+    let hmCoreLevel = 0;           // 코어 레벨 0(없음) ~ 5(기존)/6(신규)
+    let hmTotal25On = false;       // 코어 레벨 총합 25레벨 (+10%)
+    const hmArtifactBonus = 150;   // 아티팩트 보너스 (%)
+    const hmTotal25Bonus = 10;     // 코어 총합 25레벨 보너스 (%)
+
+    // 🕓 데이터 자동 전환: 2026-07-23 오전 4시(KST) 이후 신규 데이터 사용
+    const hmNewDataTime = new Date('2026-07-23T04:00:00+09:00');
+    const hmUseNewData = new Date() >= hmNewDataTime;
+
+    // 코어 보너스 (1~5레벨 동일, 전환 후 6레벨 +40% 추가)
+    const hmCoreBonus = hmUseNewData
+        ? { 1: 2, 2: 5, 3: 10, 4: 20, 5: 30, 6: 40 }
+        : { 1: 2, 2: 5, 3: 10, 4: 20, 5: 30 };
+
+    // 전환 전에는 6레벨 버튼·총합25 칸 숨김, 전환 후엔 안내 문구 숨김
+    function hmApplyDataMode() {
+        const core6 = document.getElementById('hm-core6Btn');
+        const total25 = document.getElementById('hm-total25Btn');
+        const total25Div = document.getElementById('hm-total25Divider');
+        const notice = document.getElementById('hm-update-notice');
+        if (core6) core6.style.display = hmUseNewData ? '' : 'none';
+        if (total25) total25.style.display = hmUseNewData ? '' : 'none';
+        if (total25Div) total25Div.style.display = hmUseNewData ? '' : 'none';
+        if (notice) notice.style.display = hmUseNewData ? 'none' : '';
+    }
+
+    function toggleBurning() {
+        hmBurningOn = !hmBurningOn;
+        document.getElementById('hm-burningBtn').classList.toggle('active', hmBurningOn);
+    }
+
+    function toggleArtifact() {
+        hmArtifactOn = !hmArtifactOn;
+        document.getElementById('hm-artifactBtn').classList.toggle('active', hmArtifactOn);
+    }
+
+    function toggleTotal25() {
+        hmTotal25On = !hmTotal25On;
+        document.getElementById('hm-total25Btn').classList.toggle('active', hmTotal25On);
+    }
+
+    function selectCore(lv) {
+        hmCoreLevel = lv; // 0 = 보너스 없음
+        const btns = document.querySelectorAll('#hm-coreLevels .core-lv');
+        btns.forEach(btn => {
+            const v = parseInt(btn.getAttribute('data-lv'), 10);
+            btn.classList.toggle('active', v === hmCoreLevel);
+        });
+    }
+
+    function calculateExp() {
+        const levelInput = document.getElementById('hm-levelInput').value;
+        const expInput = document.getElementById('hm-expInput').value;
+        const stepSelect = document.getElementById('hm-stepSelect').value;
+        const resultDiv = document.getElementById('hm-result');
+
+        if (!levelInput) { resultDiv.innerHTML = `<div class="error-message">레벨을 입력해 주세요.</div>`; return; }
+        if (!expInput) { resultDiv.innerHTML = `<div class="error-message">현재 경험치를 입력해 주세요. (0 입력 가능)</div>`; return; }
+
+        const levelNum = parseInt(levelInput, 10);
+
+        if (levelNum < 260) { resultDiv.innerHTML = `<div class="error-message">260부터 지원합니다.</div>`; return; }
+        if (levelNum >= 300) { resultDiv.innerHTML = `<div class="congratulation-message">만렙 축하드립니다</div>`; return; }
+
+        const currentExpStr = expInput;
+        const gainExpStr = hmLevelData[levelInput][stepSelect];
+
+        if (parseFloat(currentExpStr) < 0 || parseFloat(currentExpStr) >= 100) { resultDiv.innerHTML = `<div class="error-message">경험치는 0 이상 100 미만이어야 합니다.</div>`; return; }
+
+        const currentPool = expTable[levelNum];
+
+        const currentExpScaled = BigInt(Math.round(parseFloat(currentExpStr) * 10000));
+        let gainExpScaled = BigInt(Math.round(parseFloat(gainExpStr) * 10000));
+
+        // [아티팩트 + 코어] '기본 경험치'에 적용 → 선택 단계 값에 합산
+        // 추가분 = 기본 경험치값 × 보너스%(아티팩트+코어). 단계와 무관하게 더해짐.
+        let bonusPercent = 0;
+        if (hmArtifactOn) bonusPercent += hmArtifactBonus;
+        if (hmCoreLevel > 0) bonusPercent += (hmCoreBonus[hmCoreLevel] || 0);
+        if (hmTotal25On) bonusPercent += hmTotal25Bonus;
+        if (bonusPercent > 0) {
+            const baseGainScaled = BigInt(Math.round(parseFloat(hmLevelData[levelInput].basic) * 10000));
+            gainExpScaled = gainExpScaled + (baseGainScaled * BigInt(bonusPercent)) / 100n;
+        }
+
+        // 절대 경험치를 고정밀(×1,000,000)로 누적해 반올림 오차 최소화
+        let totalExpMicro = currentPool * (currentExpScaled + gainExpScaled);
+
+        let displayLevel = levelNum;
+
+        // [버닝 비욘드] 260부터 280까지: 레벨업 시 +1 보너스. 결과가 280을 넘지 않을 때만(280에선 미적용)
+        const HM_BURN_MIN = 260, HM_BURN_CAP = 280;
+        while (displayLevel < 300 && totalExpMicro >= expTable[displayLevel] * 1000000n) {
+            const leveledFrom = displayLevel;
+            totalExpMicro -= expTable[displayLevel] * 1000000n;
+            displayLevel++;
+            if (hmBurningOn && leveledFrom >= HM_BURN_MIN && displayLevel < HM_BURN_CAP) {
+                displayLevel++; // 보너스 +1 (결과 레벨이 280 이하일 때만)
+            }
+        }
+
+        let finalExpPercentStr = "0.000";
+        if (displayLevel >= 300) {
+            displayLevel = 300;
+            finalExpPercentStr = "0.000";
+        } else {
+            const nextPool = expTable[displayLevel];
+            const denom = 10n * nextPool;            // percent×1000 = totalExpMicro / (10 × nextPool)
+            let percentScaled = (totalExpMicro + denom / 2n) / denom; // 반올림
+            if (percentScaled > 99999n) percentScaled = 99999n;       // 99.999% 상한
+            const intPart = percentScaled / 1000n;
+            const decPart = percentScaled % 1000n;
+            finalExpPercentStr = intPart.toString() + "." + decPart.toString().padStart(3, "0");
+        }
+
+        const currentExpDisp = parseFloat(currentExpStr).toFixed(3);
+        const gainExpDisp = (Number(gainExpScaled) / 10000).toFixed(3);
+
+        let html = `
+            <div class="result-row">
+                <span class="label">기존 경험치</span>
+                <span>${currentExpDisp}%</span>
+            </div>
+            <div class="result-row">
+                <span class="label">상승 경험치</span>
+                <span class="highlight-gain">+${gainExpDisp}%</span>
+            </div>
+        `;
+
+        // 적용 옵션 칩
+        let chips = [];
+        if (hmBurningOn) chips.push("버닝 BEYOND");
+        if (hmArtifactOn) chips.push("에테리온 아티팩트 +" + hmArtifactBonus + "%");
+        if (hmCoreLevel > 0) chips.push("코어 " + hmCoreLevel + "레벨 +" + (hmCoreBonus[hmCoreLevel] || 0) + "%");
+        if (hmTotal25On) chips.push("코어 총합 25레벨 +" + hmTotal25Bonus + "%");
+        if (chips.length > 0) {
+            html += `<div class="applied-opts">` + chips.map(c => `<span class="opt-chip">${c}</span>`).join("") + `</div>`;
+        }
+
+        const finalClass = (displayLevel > levelNum) ? "highlight-levelup" : "highlight-gain";
+        html += `
+            <div class="result-row total">
+                <span>최종 레벨</span>
+                <span class="${finalClass}">${displayLevel}레벨 ${finalExpPercentStr}%</span>
+            </div>
+            <div class="disclaimer-text">※ 약간의 차이가 있을 수 있습니다.</div>
+        `;
+
+        resultDiv.innerHTML = html;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        hmApplyDataMode();
+        // 캐릭터명 칸: Enter → 조회
+        const charInput = document.getElementById('hm-charName');
+        if (charInput) {
+            charInput.addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') hmFetchCharacter();
+            });
+        }
+        // 나머지 입력칸: Enter → 계산
+        const inputs = document.querySelectorAll('#hm-calc-widget input:not(#hm-charName)');
+        inputs.forEach(input => {
+            input.addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') calculateExp();
+            });
+        });
+    });
+</script>
+    </div>
+    <div class="epic-panel" id="panel-ac" style="display:none">
+<div id="ac-calc-widget">
+    <h1><img class="title-icon" src="https://k.kakaocdn.net/dn/S4MmJ/dJMcahpc2XR/AAAAAAAAAAAAAAAAAAAAAHUu6Ne-W-ycCEjhVdouf7wNMRZ_QvwfaE6BiKBoEa6N/img.png" alt="icon" /> 앵글러 컴퍼니 경험치 계산기</h1>
+    <div class="inputs-row">
+        <div class="input-group"><label for="ac-levelInput">현재 레벨</label> <input id="ac-levelInput" type="number" placeholder="270 ~ 299" /></div>
+        <div class="input-group"><label for="ac-expInput">현재 경험치 (%)</label> <input id="ac-expInput" step="0.001" type="number" placeholder="예: 45.123" /></div>
+        <div class="input-group"><label for="ac-stepSelect">보너스 단계</label><select id="ac-stepSelect">
+            <option value="basic">기본 보상</option>
+            <option value="step1">EXP 1단계 (10,000 메포)</option>
+            <option value="step2">EXP 2단계 (40,000 메포)</option>
+        </select></div>
+    </div>
+
+    <!-- 옵션 구역: 버닝 BEYOND / 아티팩트+코어 -->
+    <div class="options-area">
+        <!-- 버닝 BEYOND -->
+        <div class="burning-box" id="ac-burningBtn" role="button" tabindex="0" onclick="acToggleBurning()">
+            <span class="burning-icon-wrap">
+                <img class="burning-icon" id="ac-burningIcon" src="https://k.kakaocdn.net/dn/Xs1CG/dJMcahx922p/AAAAAAAAAAAAAAAAAAAAABVrNUru04FCMYFOUIeUyWv2NICez7cP3nTuDst-YYPv/img.png" alt="" />
+            </span>
+            <span class="burning-text">버닝 BEYOND</span>
+            <span class="burning-switch"><span class="burning-knob"></span></span>
+        </div>
+
+        <!-- 에테리온 아티팩트 + 코어 (하나의 UI) -->
+        <div class="artifact-core-box">
+            <div class="ac-top" id="ac-artifactBtn" role="button" tabindex="0" onclick="acToggleArtifact()">
+                <span class="burning-icon-wrap">
+                    <img class="burning-icon" id="ac-artifactIcon" src="https://k.kakaocdn.net/dn/RnHPl/dJMcad3wFL9/AAAAAAAAAAAAAAAAAAAAAKtKoHNwpRg4ImB6VxgkC1NazPzObm1yLE-NdezWascq/img.png" alt="" />
+                </span>
+                <span class="burning-text">에테리온 아티팩트</span>
+                <span class="burning-switch"><span class="burning-knob"></span></span>
+            </div>
+            <div class="ac-divider"></div>
+            <div class="ac-core">
+                <span class="core-label">코어 레벨</span>
+                <div class="core-levels" id="ac-coreLevels">
+                    <button type="button" class="core-lv active" data-lv="0" onclick="acSelectCore(0)">0</button>
+                    <button type="button" class="core-lv" data-lv="1" onclick="acSelectCore(1)">1</button>
+                    <button type="button" class="core-lv" data-lv="2" onclick="acSelectCore(2)">2</button>
+                    <button type="button" class="core-lv" data-lv="3" onclick="acSelectCore(3)">3</button>
+                    <button type="button" class="core-lv" data-lv="4" onclick="acSelectCore(4)">4</button>
+                    <button type="button" class="core-lv" data-lv="5" onclick="acSelectCore(5)">5</button>
+                    <button type="button" class="core-lv" id="ac-core6Btn" data-lv="6" onclick="acSelectCore(6)">6</button>
+                </div>
+            </div>
+            <div class="ac-divider" id="ac-total25Divider"></div>
+            <div class="ac-total" id="ac-total25Btn" role="button" tabindex="0" onclick="acToggleTotal25()">
+                <span class="core-label">코어 레벨 총합 25레벨</span>
+                <span class="burning-switch"><span class="burning-knob"></span></span>
+            </div>
+        </div>
+    </div>
+
+    <button class="calc-btn" onclick="acCalculateExp()">계산하기</button>
+    <div id="ac-result">
+        <div class="result-placeholder">레벨과 경험치를 입력하고<br />계산하기를 눌러주세요.</div>
+    </div>
+    <div id="ac-update-notice" class="update-notice">변경된 내용은 23일 오전 4시에 반영됩니다.</div>
+</div>
+
+<style>
+
+    #ac-calc-widget {
+        box-sizing: border-box; width: 100%; max-width: 620px; margin: 0 auto;
+        padding: 26px; background-color: #202632; border: 1px solid #333b48; border-radius: 16px;
+        text-align: center;
+        font-family: 'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+        letter-spacing: -0.3px; -webkit-font-smoothing: antialiased;
+    }
+    #ac-calc-widget h1 { color: #f9fafb; margin: 0 0 22px 0; font-size: 1.3em; font-weight: 800;
+        display: flex; align-items: center; justify-content: center; border: none; padding: 0; }
+    #ac-calc-widget .title-icon { width: 26px; height: 26px; margin-right: 8px; border: none; }
+
+    #ac-calc-widget .inputs-row { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
+    #ac-calc-widget .input-group { display: flex; flex-direction: column; align-items: center; }
+    #ac-calc-widget .input-group:nth-child(1) { flex: 0.9; }
+    #ac-calc-widget .input-group:nth-child(2) { flex: 1.1; }
+    #ac-calc-widget .input-group:nth-child(3) { flex: 1.4; }
+    #ac-calc-widget .input-group label { font-weight: 700; color: #8b95a1; font-size: 0.9em; margin-bottom: 8px; width: 100%; text-align: center; }
+
+    #ac-calc-widget input::-webkit-outer-spin-button,
+    #ac-calc-widget input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    #ac-calc-widget input[type=number] { -moz-appearance: textfield; }
+
+    #ac-calc-widget .input-group input,
+    #ac-calc-widget .input-group select {
+        box-sizing: border-box; width: 100%; padding: 11px 10px; border-radius: 8px;
+        border: 1px solid #333b48; font-size: 14px; background-color: #191f28; color: #f9fafb; text-align: center; font-family: inherit;
+    }
+    #ac-calc-widget .input-group input:focus,
+    #ac-calc-widget .input-group select:focus { outline: none; border-color: #3182f6; }
+    #ac-calc-widget .input-group input::placeholder { color: #6b7684; }
+
+    #ac-calc-widget .char-lookup { display: flex; gap: 8px; margin-bottom: 8px; }
+    #ac-calc-widget .char-lookup input { flex: 1; box-sizing: border-box; padding: 11px 12px; border-radius: 8px;
+        border: 1px solid #333b48; font-size: 14px; background-color: #191f28; color: #f9fafb; }
+    #ac-calc-widget .char-lookup input::placeholder { color: #6b7684; }
+    #ac-calc-widget .char-lookup input:focus { outline: none; border-color: #3182f6; }
+    #ac-calc-widget .char-btn { flex: 0 0 auto; padding: 0 18px; border: 1px solid #333b48; border-radius: 8px;
+        background-color: #2b323e; color: #f9fafb; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background-color 0.2s; }
+    #ac-calc-widget .char-btn:hover { background-color: #3a4453; }
+    #ac-calc-widget .char-status { min-height: 16px; margin-bottom: 14px; font-size: 0.82em; text-align: left; color: #8b95a1; }
+    #ac-calc-widget .char-status.ok { color: #5b9dff; font-weight: 700; }
+    #ac-calc-widget .char-status.err { color: #ff5b6e; font-weight: 700; }
+
+    #ac-calc-widget .options-area { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+
+    #ac-calc-widget .burning-box { display: flex; align-items: center; gap: 11px; padding: 11px 14px; border-radius: 10px;
+        border: 1px solid #333b48; background-color: #191f28; cursor: pointer; user-select: none; transition: border-color 0.2s, box-shadow 0.2s; }
+    #ac-calc-widget .burning-box:hover,
+    #ac-calc-widget .ac-top:hover { border-color: #3f4c60; }
+    #ac-calc-widget .burning-box.active { border-color: #ff8a3d; box-shadow: 0 2px 8px rgba(255,138,61,0.18); }
+
+    #ac-calc-widget .artifact-core-box { border: 1px solid #333b48; border-radius: 10px; background-color: #191f28; overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s; }
+    #ac-calc-widget .artifact-core-box:has(.ac-top.active),
+    #ac-calc-widget .artifact-core-box:has(.ac-total.active) { border-color: #ff8a3d; box-shadow: 0 2px 8px rgba(255,138,61,0.18); }
+    #ac-calc-widget .ac-top { display: flex; align-items: center; gap: 11px; padding: 11px 14px; cursor: pointer; user-select: none; }
+    #ac-calc-widget .ac-divider { height: 1px; background-color: #2b323e; }
+    #ac-calc-widget .ac-core { display: flex; align-items: center; gap: 10px; padding: 11px 14px; }
+    #ac-calc-widget .ac-total { display: flex; align-items: center; gap: 10px; padding: 11px 14px; cursor: pointer; user-select: none; }
+    #ac-calc-widget .ac-total.active .core-label { color: #ff8a3d; }
+    #ac-calc-widget .ac-total.active .burning-switch { background-color: #ff8a3d; }
+    #ac-calc-widget .ac-total.active .burning-knob { left: 22px; }
+    #ac-calc-widget .update-notice { margin-top: 14px; text-align: center; font-size: 0.85em; font-weight: 700; color: #ff8a3d; background-color: rgba(255,138,61,0.1); border: 1px solid rgba(255,138,61,0.35); border-radius: 8px; padding: 10px 12px; }
+
+    #ac-calc-widget .burning-icon-wrap { width: 26px; height: 26px; flex: 0 0 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; overflow: hidden; }
+    #ac-calc-widget .burning-icon { width: 26px; height: 26px; border-radius: 5px; object-fit: cover; }
+    #ac-calc-widget .burning-icon[src=""] { display: none; }
+
+    #ac-calc-widget .burning-text { font-size: 14px; font-weight: 700; color: #b0b8c1; letter-spacing: 0.2px; white-space: nowrap; }
+    #ac-calc-widget .burning-box.active .burning-text,
+    #ac-calc-widget .ac-top.active .burning-text { color: #ff8a3d; }
+
+    #ac-calc-widget .burning-switch { position: relative; width: 44px; height: 24px; flex: 0 0 44px; margin-left: auto; background-color: #3a4453; border-radius: 12px; transition: background-color 0.25s; }
+    #ac-calc-widget .burning-knob { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background-color: #ffffff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.4); transition: left 0.25s; }
+    #ac-calc-widget .burning-box.active .burning-switch,
+    #ac-calc-widget .ac-top.active .burning-switch { background-color: #ff8a3d; }
+    #ac-calc-widget .burning-box.active .burning-knob,
+    #ac-calc-widget .ac-top.active .burning-knob { left: 22px; }
+
+    #ac-calc-widget .core-label { font-size: 14px; font-weight: 700; color: #8b95a1; white-space: nowrap; }
+    #ac-calc-widget .core-levels { display: flex; gap: 6px; margin-left: auto; }
+    #ac-calc-widget .core-lv { width: 32px; height: 32px; padding: 0; border-radius: 6px; border: 1px solid #333b48; background-color: #191f28; color: #b0b8c1; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    #ac-calc-widget .core-lv:hover { border-color: #ff8a3d; }
+    #ac-calc-widget .core-lv.active { background-color: #ff8a3d; border-color: #ff8a3d; color: #191f28; }
+
+    #ac-calc-widget .calc-btn { width: 100%; padding: 14px; border: none; border-radius: 11px; background-color: #3182f6; color: white; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 4px; font-family: inherit; transition: background-color 0.2s; }
+    #ac-calc-widget .calc-btn:hover { background-color: #1f6fe8; }
+
+    #ac-calc-widget #ac-result { box-sizing: border-box; margin-top: 18px; padding: 20px 22px; background-color: #12161d; border-radius: 12px; border: 1px solid #333b48; line-height: 1.6; text-align: center; }
+    #ac-calc-widget .result-placeholder { color: #6b7684; font-size: 0.95em; }
+    #ac-calc-widget .error-message { color: #ff5b6e; font-weight: 700; font-size: 0.95em; }
+    #ac-calc-widget .congratulation-message { color: #5b9dff; font-weight: 700; font-size: 1.05em; }
+    #ac-calc-widget .result-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 1em; color: #b0b8c1; }
+    #ac-calc-widget .result-row:last-of-type { margin-bottom: 0; }
+    #ac-calc-widget .result-row .label { color: #8b95a1; }
+    #ac-calc-widget .result-row.total { margin-top: 14px; padding-top: 14px; border-top: 1px dashed #333b48; font-size: 1.18em; font-weight: 800; color: #f9fafb; }
+    #ac-calc-widget .highlight-gain { color: #5b9dff; font-weight: 700; }
+    #ac-calc-widget .highlight-levelup { color: #d4ff00; font-weight: 800; }
+    #ac-calc-widget .applied-opts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 12px 0 2px; padding-top: 12px; border-top: 1px solid #2b323e; }
+    #ac-calc-widget .opt-chip { font-size: 0.8em; font-weight: 600; color: #ff8a3d; background-color: rgba(255,138,61,0.1); border: 1px solid rgba(255,138,61,0.35); border-radius: 5px; padding: 3px 9px; white-space: nowrap; }
+    #ac-calc-widget .disclaimer-text { font-size: 0.85em; color: #6b7684; margin-top: 14px; text-align: center; }
+
+    @media (max-width: 640px) {
+        #ac-calc-widget { padding: 20px; }
+        #ac-calc-widget .inputs-row { flex-direction: column; gap: 14px; }
+        #ac-calc-widget .input-group:nth-child(1),
+        #ac-calc-widget .input-group:nth-child(2),
+        #ac-calc-widget .input-group:nth-child(3) { flex: 1; }
+        #ac-calc-widget #ac-result { padding: 18px; }
+    }
+
+</style>
+
+<script>
+    // 270~299 레벨 실제 필요 경험치 테이블 (BigInt) — ac 네임스페이스
+    const acExpTable = {
+        270: 1883674834103118n, 271: 1968439701637759n, 272: 2057019488211458n, 273: 2149585365180974n, 274: 2246316706614118n,
+        275: 4672338749757360n, 276: 4882594008506000n, 277: 5102310723280000n, 278: 5331914697000000n, 279: 5571850845000000n,
+        280: 11645168266000000n, 281: 12169200838000000n, 282: 12716814876000000n, 283: 13289071545000000n, 284: 13887079765000000n,
+        285: 29023996709000000n, 286: 30330076561000000n, 287: 31694930006000000n, 288: 33121201856000000n, 289: 34611655940000000n,
+        290: 72338360915000000n, 291: 75593587156000000n, 292: 78995298578000000n, 293: 82550087014000000n, 294: 86264840930000000n,
+        295: 180293517544000000n, 296: 188406725833000000n, 297: 196885028496000000n, 298: 205744854778000000n, 299: 215003373243000000n
+    };
+
+    const acLevelData = {
+        "270": { basic: "9.5335", step1: "47.6675", step2: "85.8015" },
+        "271": { basic: "9.8864", step1: "49.4320", step2: "88.9776" },
+        "272": { basic: "9.9135", step1: "49.5675", step2: "89.2215" },
+        "273": { basic: "10.3506", step1: "51.7530", step2: "93.1554" },
+        "274": { basic: "10.4026", step1: "52.0130", step2: "93.6234" },
+        "275": { basic: "5.7879", step1: "28.9395", step2: "52.0911" },
+        "276": { basic: "5.3277", step1: "26.6385", step2: "47.9493" },
+        "277": { basic: "4.9142", step1: "24.5710", step2: "44.2278" },
+        "278": { basic: "4.5219", step1: "22.6095", step2: "40.6971" },
+        "279": { basic: "4.1658", step1: "20.8290", step2: "37.4922" },
+        "280": { basic: "2.3164", step1: "11.5820", step2: "20.8476" },
+        "281": { basic: "2.1346", step1: "10.6730", step2: "19.2114" },
+        "282": { basic: "1.9637", step1: "9.8185", step2: "17.6733" },
+        "283": { basic: "1.8093", step1: "9.0465", step2: "16.2837" },
+        "284": { basic: "1.6643", step1: "8.3215", step2: "14.9787" },
+        "285": { basic: "0.9261", step1: "4.6305", step2: "8.3349" },
+        "286": { basic: "0.8518", step1: "4.2590", step2: "7.6662" },
+        "287": { basic: "0.7843", step1: "3.9215", step2: "7.0587" },
+        "288": { basic: "0.7223", step1: "3.6115", step2: "6.5007" },
+        "289": { basic: "0.6641", step1: "3.3205", step2: "5.9769" },
+        "290": { basic: "0.3694", step1: "1.8470", step2: "3.3246" },
+        "291": { basic: "0.3396", step1: "1.6980", step2: "3.0564" },
+        "292": { basic: "0.3126", step1: "1.5630", step2: "2.8134" },
+        "293": { basic: "0.2875", step1: "1.4375", step2: "2.5875" },
+        "294": { basic: "0.2644", step1: "1.3220", step2: "2.3796" },
+        "295": { basic: "0.1309", step1: "0.6545", step2: "1.1781" },
+        "296": { basic: "0.1190", step1: "0.5950", step2: "1.0710" },
+        "297": { basic: "0.1082", step1: "0.5410", step2: "0.9738" },
+        "298": { basic: "0.0984", step1: "0.4920", step2: "0.8856" },
+        "299": { basic: "0.0656", step1: "0.3280", step2: "0.5904" }
+    };
+
+    // 버닝 BEYOND 상태
+    let acBurningOn = false;
+
+    // 아티팩트 / 코어 상태 및 보너스 값 (단위: %)
+    let acArtifactOn = false;      // 아티팩트 활성화 시 +150%
+    let acCoreLevel = 0;           // 코어 레벨 0(없음) ~ 5(기존)/6(신규)
+    let acTotal25On = false;       // 코어 레벨 총합 25레벨 (+10%)
+    const acArtifactBonus = 150;   // 아티팩트 보너스 (%)
+    const acTotal25Bonus = 10;     // 코어 총합 25레벨 보너스 (%)
+
+    // 🕓 데이터 자동 전환: 2026-07-23 오전 4시(KST) 이후 신규 데이터 사용
+    const acNewDataTime = new Date('2026-07-23T04:00:00+09:00');
+    const acUseNewData = new Date() >= acNewDataTime;
+
+    // 코어 보너스 (1~5레벨 동일, 전환 후 6레벨 +40% 추가)
+    const acCoreBonus = acUseNewData
+        ? { 1: 2, 2: 5, 3: 10, 4: 20, 5: 30, 6: 40 }
+        : { 1: 2, 2: 5, 3: 10, 4: 20, 5: 30 };
+
+    // 전환 전에는 6레벨 버튼·총합25 칸 숨김, 전환 후엔 안내 문구 숨김
+    function acApplyDataMode() {
+        const core6 = document.getElementById('ac-core6Btn');
+        const total25 = document.getElementById('ac-total25Btn');
+        const total25Div = document.getElementById('ac-total25Divider');
+        const notice = document.getElementById('ac-update-notice');
+        if (core6) core6.style.display = acUseNewData ? '' : 'none';
+        if (total25) total25.style.display = acUseNewData ? '' : 'none';
+        if (total25Div) total25Div.style.display = acUseNewData ? '' : 'none';
+        if (notice) notice.style.display = acUseNewData ? 'none' : '';
+    }
+
+    function acToggleBurning() {
+        acBurningOn = !acBurningOn;
+        document.getElementById('ac-burningBtn').classList.toggle('active', acBurningOn);
+    }
+
+    function acToggleArtifact() {
+        acArtifactOn = !acArtifactOn;
+        document.getElementById('ac-artifactBtn').classList.toggle('active', acArtifactOn);
+    }
+
+    function acToggleTotal25() {
+        acTotal25On = !acTotal25On;
+        document.getElementById('ac-total25Btn').classList.toggle('active', acTotal25On);
+    }
+
+    function acSelectCore(lv) {
+        acCoreLevel = lv; // 0 = 보너스 없음
+        const btns = document.querySelectorAll('#ac-coreLevels .core-lv');
+        btns.forEach(btn => {
+            const v = parseInt(btn.getAttribute('data-lv'), 10);
+            btn.classList.toggle('active', v === acCoreLevel);
+        });
+    }
+
+    function acCalculateExp() {
+        const levelInput = document.getElementById('ac-levelInput').value;
+        const expInput = document.getElementById('ac-expInput').value;
+        const stepSelect = document.getElementById('ac-stepSelect').value;
+        const resultDiv = document.getElementById('ac-result');
+
+        if (!levelInput) { resultDiv.innerHTML = `<div class="error-message">레벨을 입력해 주세요.</div>`; return; }
+        if (!expInput) { resultDiv.innerHTML = `<div class="error-message">현재 경험치를 입력해 주세요. (0 입력 가능)</div>`; return; }
+
+        const levelNum = parseInt(levelInput, 10);
+
+        // 앵글러 컴퍼니 레벨 제한
+        if (levelNum < 270) { resultDiv.innerHTML = `<div class="error-message">270부터 지원합니다.</div>`; return; }
+        if (levelNum >= 300) { resultDiv.innerHTML = `<div class="congratulation-message">만렙 축하드립니다</div>`; return; }
+
+        const currentExpStr = expInput;
+        const gainExpStr = acLevelData[levelInput][stepSelect];
+
+        if (parseFloat(currentExpStr) < 0 || parseFloat(currentExpStr) >= 100) { resultDiv.innerHTML = `<div class="error-message">경험치는 0 이상 100 미만이어야 합니다.</div>`; return; }
+
+        const currentPool = acExpTable[levelNum];
+
+        const currentExpScaled = BigInt(Math.round(parseFloat(currentExpStr) * 10000));
+        let gainExpScaled = BigInt(Math.round(parseFloat(gainExpStr) * 10000));
+
+        // [아티팩트 + 코어] '기본 경험치'에 적용 → 선택 단계 값에 합산
+        // 추가분 = 기본 경험치값 × 보너스%(아티팩트+코어). 단계와 무관하게 더해짐.
+        let bonusPercent = 0;
+        if (acArtifactOn) bonusPercent += acArtifactBonus;
+        if (acCoreLevel > 0) bonusPercent += (acCoreBonus[acCoreLevel] || 0);
+        if (acTotal25On) bonusPercent += acTotal25Bonus;
+        if (bonusPercent > 0) {
+            const baseGainScaled = BigInt(Math.round(parseFloat(acLevelData[levelInput].basic) * 10000));
+            gainExpScaled = gainExpScaled + (baseGainScaled * BigInt(bonusPercent)) / 100n;
+        }
+
+        // 절대 경험치를 고정밀(×1,000,000)로 누적해 반올림 오차 최소화
+        let totalExpMicro = currentPool * (currentExpScaled + gainExpScaled);
+
+        let displayLevel = levelNum;
+
+        // [버닝 비욘드] 270부터 280까지: 레벨업 시 +1 보너스. 결과가 280을 넘지 않을 때만(280에선 미적용)
+        const AC_BURN_MIN = 270, AC_BURN_CAP = 280;
+        while (displayLevel < 300 && totalExpMicro >= acExpTable[displayLevel] * 1000000n) {
+            const leveledFrom = displayLevel;
+            totalExpMicro -= acExpTable[displayLevel] * 1000000n;
+            displayLevel++;
+            if (acBurningOn && leveledFrom >= AC_BURN_MIN && displayLevel < AC_BURN_CAP) {
+                displayLevel++; // 보너스 +1 (결과 레벨이 280 이하일 때만)
+            }
+        }
+
+        let finalExpPercentStr = "0.000";
+        if (displayLevel >= 300) {
+            displayLevel = 300;
+            finalExpPercentStr = "0.000";
+        } else {
+            const nextPool = acExpTable[displayLevel];
+            const denom = 10n * nextPool;
+            let percentScaled = (totalExpMicro + denom / 2n) / denom;
+            if (percentScaled > 99999n) percentScaled = 99999n;
+            const intPart = percentScaled / 1000n;
+            const decPart = percentScaled % 1000n;
+            finalExpPercentStr = intPart.toString() + "." + decPart.toString().padStart(3, "0");
+        }
+
+        const currentExpDisp = parseFloat(currentExpStr).toFixed(3);
+        const gainExpDisp = (Number(gainExpScaled) / 10000).toFixed(3);
+
+        let html = `
+            <div class="result-row">
+                <span class="label">기존 경험치</span>
+                <span>${currentExpDisp}%</span>
+            </div>
+            <div class="result-row">
+                <span class="label">상승 경험치</span>
+                <span class="highlight-gain">+${gainExpDisp}%</span>
+            </div>
+        `;
+
+        // 적용 옵션 칩
+        let chips = [];
+        if (acBurningOn) chips.push("버닝 BEYOND");
+        if (acArtifactOn) chips.push("에테리온 아티팩트 +" + acArtifactBonus + "%");
+        if (acCoreLevel > 0) chips.push("코어 " + acCoreLevel + "레벨 +" + (acCoreBonus[acCoreLevel] || 0) + "%");
+        if (acTotal25On) chips.push("코어 총합 25레벨 +" + acTotal25Bonus + "%");
+        if (chips.length > 0) {
+            html += `<div class="applied-opts">` + chips.map(c => `<span class="opt-chip">${c}</span>`).join("") + `</div>`;
+        }
+
+        const finalClass = (displayLevel > levelNum) ? "highlight-levelup" : "highlight-gain";
+        html += `
+            <div class="result-row total">
+                <span>최종 레벨</span>
+                <span class="${finalClass}">${displayLevel}레벨 ${finalExpPercentStr}%</span>
+            </div>
+            <div class="disclaimer-text">※ 약간의 차이가 있을 수 있습니다.</div>
+        `;
+
+        resultDiv.innerHTML = html;
+    }
+
+    // 엔터키 입력 이벤트
+    document.addEventListener('DOMContentLoaded', function() {
+        acApplyDataMode();
+        const inputs = document.querySelectorAll('#ac-calc-widget input');
+        inputs.forEach(input => {
+            input.addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') acCalculateExp();
+            });
+        });
+    });
+</script>
+    </div>
+    <div class="epic-panel" id="panel-ns" style="display:none">
+<div id="ns-calc-widget">
+    <h1><img class="title-icon" src="https://k.kakaocdn.net/dn/4eLn7/btsQWeUGRz9/AAAAAAAAAAAAAAAAAAAAAMkN2IYhQTiAVgQIHRjq_ZqDfDoDJpbse5y_jBTN3HRY/img.png" alt="icon" /> 악몽선경 경험치 계산기</h1>
+    <div class="inputs-row">
+        <div class="input-group"><label for="ns-levelInput">현재 레벨</label> <input id="ns-levelInput" type="number" placeholder="280 ~ 299" /></div>
+        <div class="input-group"><label for="ns-expInput">현재 경험치 (%)</label> <input id="ns-expInput" step="0.001" type="number" placeholder="예: 45.123" /></div>
+        <div class="input-group"><label for="ns-stepSelect">보너스 단계</label><select id="ns-stepSelect">
+            <option value="basic">기본 보상</option>
+            <option value="step1">EXP 1단계 (12,500 메포)</option>
+            <option value="step2">EXP 2단계 (50,000 메포)</option>
+        </select></div>
+    </div>
+
+    <!-- 옵션 구역: 에테리온 아티팩트 + 코어 (버닝 BEYOND 없음) -->
+    <div class="options-area">
+        <div class="artifact-core-box">
+            <div class="ac-top" id="ns-artifactBtn" role="button" tabindex="0" onclick="nsToggleArtifact()">
+                <span class="burning-icon-wrap">
+                    <img class="burning-icon" id="ns-artifactIcon" src="https://k.kakaocdn.net/dn/RnHPl/dJMcad3wFL9/AAAAAAAAAAAAAAAAAAAAAKtKoHNwpRg4ImB6VxgkC1NazPzObm1yLE-NdezWascq/img.png" alt="" />
+                </span>
+                <span class="burning-text">에테리온 아티팩트</span>
+                <span class="burning-switch"><span class="burning-knob"></span></span>
+            </div>
+            <div class="ac-divider"></div>
+            <div class="ac-core">
+                <span class="core-label">코어 레벨</span>
+                <div class="core-levels" id="ns-coreLevels">
+                    <button type="button" class="core-lv active" data-lv="0" onclick="nsSelectCore(0)">0</button>
+                    <button type="button" class="core-lv" data-lv="1" onclick="nsSelectCore(1)">1</button>
+                    <button type="button" class="core-lv" data-lv="2" onclick="nsSelectCore(2)">2</button>
+                    <button type="button" class="core-lv" data-lv="3" onclick="nsSelectCore(3)">3</button>
+                    <button type="button" class="core-lv" data-lv="4" onclick="nsSelectCore(4)">4</button>
+                    <button type="button" class="core-lv" data-lv="5" onclick="nsSelectCore(5)">5</button>
+                    <button type="button" class="core-lv" id="ns-core6Btn" data-lv="6" onclick="nsSelectCore(6)">6</button>
+                </div>
+            </div>
+            <div class="ac-divider" id="ns-total25Divider"></div>
+            <div class="ac-total" id="ns-total25Btn" role="button" tabindex="0" onclick="nsToggleTotal25()">
+                <span class="core-label">코어 레벨 총합 25레벨</span>
+                <span class="burning-switch"><span class="burning-knob"></span></span>
+            </div>
+        </div>
+    </div>
+
+    <button class="calc-btn" onclick="nsCalculateExp()">계산하기</button>
+    <div id="ns-result">
+        <div class="result-placeholder">레벨과 경험치를 입력하고<br />계산하기를 눌러주세요.</div>
+    </div>
+    <div id="ns-update-notice" class="update-notice">변경된 내용은 23일 오전 4시에 반영됩니다.</div>
+</div>
+
+<style>
+
+    #ns-calc-widget {
+        box-sizing: border-box; width: 100%; max-width: 620px; margin: 0 auto;
+        padding: 26px; background-color: #202632; border: 1px solid #333b48; border-radius: 16px;
+        text-align: center;
+        font-family: 'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+        letter-spacing: -0.3px; -webkit-font-smoothing: antialiased;
+    }
+    #ns-calc-widget h1 { color: #f9fafb; margin: 0 0 22px 0; font-size: 1.3em; font-weight: 800;
+        display: flex; align-items: center; justify-content: center; border: none; padding: 0; }
+    #ns-calc-widget .title-icon { width: 26px; height: 26px; margin-right: 8px; border: none; }
+
+    #ns-calc-widget .inputs-row { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
+    #ns-calc-widget .input-group { display: flex; flex-direction: column; align-items: center; }
+    #ns-calc-widget .input-group:nth-child(1) { flex: 0.9; }
+    #ns-calc-widget .input-group:nth-child(2) { flex: 1.1; }
+    #ns-calc-widget .input-group:nth-child(3) { flex: 1.4; }
+    #ns-calc-widget .input-group label { font-weight: 700; color: #8b95a1; font-size: 0.9em; margin-bottom: 8px; width: 100%; text-align: center; }
+
+    #ns-calc-widget input::-webkit-outer-spin-button,
+    #ns-calc-widget input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    #ns-calc-widget input[type=number] { -moz-appearance: textfield; }
+
+    #ns-calc-widget .input-group input,
+    #ns-calc-widget .input-group select {
+        box-sizing: border-box; width: 100%; padding: 11px 10px; border-radius: 8px;
+        border: 1px solid #333b48; font-size: 14px; background-color: #191f28; color: #f9fafb; text-align: center; font-family: inherit;
+    }
+    #ns-calc-widget .input-group input:focus,
+    #ns-calc-widget .input-group select:focus { outline: none; border-color: #3182f6; }
+    #ns-calc-widget .input-group input::placeholder { color: #6b7684; }
+
+    #ns-calc-widget .char-lookup { display: flex; gap: 8px; margin-bottom: 8px; }
+    #ns-calc-widget .char-lookup input { flex: 1; box-sizing: border-box; padding: 11px 12px; border-radius: 8px;
+        border: 1px solid #333b48; font-size: 14px; background-color: #191f28; color: #f9fafb; }
+    #ns-calc-widget .char-lookup input::placeholder { color: #6b7684; }
+    #ns-calc-widget .char-lookup input:focus { outline: none; border-color: #3182f6; }
+    #ns-calc-widget .char-btn { flex: 0 0 auto; padding: 0 18px; border: 1px solid #333b48; border-radius: 8px;
+        background-color: #2b323e; color: #f9fafb; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background-color 0.2s; }
+    #ns-calc-widget .char-btn:hover { background-color: #3a4453; }
+    #ns-calc-widget .char-status { min-height: 16px; margin-bottom: 14px; font-size: 0.82em; text-align: left; color: #8b95a1; }
+    #ns-calc-widget .char-status.ok { color: #5b9dff; font-weight: 700; }
+    #ns-calc-widget .char-status.err { color: #ff5b6e; font-weight: 700; }
+
+    #ns-calc-widget .options-area { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+
+    #ns-calc-widget .burning-box { display: flex; align-items: center; gap: 11px; padding: 11px 14px; border-radius: 10px;
+        border: 1px solid #333b48; background-color: #191f28; cursor: pointer; user-select: none; transition: border-color 0.2s, box-shadow 0.2s; }
+    #ns-calc-widget .burning-box:hover,
+    #ns-calc-widget .ac-top:hover { border-color: #3f4c60; }
+    #ns-calc-widget .burning-box.active { border-color: #ff8a3d; box-shadow: 0 2px 8px rgba(255,138,61,0.18); }
+
+    #ns-calc-widget .artifact-core-box { border: 1px solid #333b48; border-radius: 10px; background-color: #191f28; overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s; }
+    #ns-calc-widget .artifact-core-box:has(.ac-top.active),
+    #ns-calc-widget .artifact-core-box:has(.ac-total.active) { border-color: #ff8a3d; box-shadow: 0 2px 8px rgba(255,138,61,0.18); }
+    #ns-calc-widget .ac-top { display: flex; align-items: center; gap: 11px; padding: 11px 14px; cursor: pointer; user-select: none; }
+    #ns-calc-widget .ac-divider { height: 1px; background-color: #2b323e; }
+    #ns-calc-widget .ac-core { display: flex; align-items: center; gap: 10px; padding: 11px 14px; }
+    #ns-calc-widget .ac-total { display: flex; align-items: center; gap: 10px; padding: 11px 14px; cursor: pointer; user-select: none; }
+    #ns-calc-widget .ac-total.active .core-label { color: #ff8a3d; }
+    #ns-calc-widget .ac-total.active .burning-switch { background-color: #ff8a3d; }
+    #ns-calc-widget .ac-total.active .burning-knob { left: 22px; }
+    #ns-calc-widget .update-notice { margin-top: 14px; text-align: center; font-size: 0.85em; font-weight: 700; color: #ff8a3d; background-color: rgba(255,138,61,0.1); border: 1px solid rgba(255,138,61,0.35); border-radius: 8px; padding: 10px 12px; }
+
+    #ns-calc-widget .burning-icon-wrap { width: 26px; height: 26px; flex: 0 0 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 5px; overflow: hidden; }
+    #ns-calc-widget .burning-icon { width: 26px; height: 26px; border-radius: 5px; object-fit: cover; }
+    #ns-calc-widget .burning-icon[src=""] { display: none; }
+
+    #ns-calc-widget .burning-text { font-size: 14px; font-weight: 700; color: #b0b8c1; letter-spacing: 0.2px; white-space: nowrap; }
+    #ns-calc-widget .burning-box.active .burning-text,
+    #ns-calc-widget .ac-top.active .burning-text { color: #ff8a3d; }
+
+    #ns-calc-widget .burning-switch { position: relative; width: 44px; height: 24px; flex: 0 0 44px; margin-left: auto; background-color: #3a4453; border-radius: 12px; transition: background-color 0.25s; }
+    #ns-calc-widget .burning-knob { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background-color: #ffffff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.4); transition: left 0.25s; }
+    #ns-calc-widget .burning-box.active .burning-switch,
+    #ns-calc-widget .ac-top.active .burning-switch { background-color: #ff8a3d; }
+    #ns-calc-widget .burning-box.active .burning-knob,
+    #ns-calc-widget .ac-top.active .burning-knob { left: 22px; }
+
+    #ns-calc-widget .core-label { font-size: 14px; font-weight: 700; color: #8b95a1; white-space: nowrap; }
+    #ns-calc-widget .core-levels { display: flex; gap: 6px; margin-left: auto; }
+    #ns-calc-widget .core-lv { width: 32px; height: 32px; padding: 0; border-radius: 6px; border: 1px solid #333b48; background-color: #191f28; color: #b0b8c1; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    #ns-calc-widget .core-lv:hover { border-color: #ff8a3d; }
+    #ns-calc-widget .core-lv.active { background-color: #ff8a3d; border-color: #ff8a3d; color: #191f28; }
+
+    #ns-calc-widget .calc-btn { width: 100%; padding: 14px; border: none; border-radius: 11px; background-color: #3182f6; color: white; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 4px; font-family: inherit; transition: background-color 0.2s; }
+    #ns-calc-widget .calc-btn:hover { background-color: #1f6fe8; }
+
+    #ns-calc-widget #ns-result { box-sizing: border-box; margin-top: 18px; padding: 20px 22px; background-color: #12161d; border-radius: 12px; border: 1px solid #333b48; line-height: 1.6; text-align: center; }
+    #ns-calc-widget .result-placeholder { color: #6b7684; font-size: 0.95em; }
+    #ns-calc-widget .error-message { color: #ff5b6e; font-weight: 700; font-size: 0.95em; }
+    #ns-calc-widget .congratulation-message { color: #5b9dff; font-weight: 700; font-size: 1.05em; }
+    #ns-calc-widget .result-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 1em; color: #b0b8c1; }
+    #ns-calc-widget .result-row:last-of-type { margin-bottom: 0; }
+    #ns-calc-widget .result-row .label { color: #8b95a1; }
+    #ns-calc-widget .result-row.total { margin-top: 14px; padding-top: 14px; border-top: 1px dashed #333b48; font-size: 1.18em; font-weight: 800; color: #f9fafb; }
+    #ns-calc-widget .highlight-gain { color: #5b9dff; font-weight: 700; }
+    #ns-calc-widget .highlight-levelup { color: #d4ff00; font-weight: 800; }
+    #ns-calc-widget .applied-opts { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 12px 0 2px; padding-top: 12px; border-top: 1px solid #2b323e; }
+    #ns-calc-widget .opt-chip { font-size: 0.8em; font-weight: 600; color: #ff8a3d; background-color: rgba(255,138,61,0.1); border: 1px solid rgba(255,138,61,0.35); border-radius: 5px; padding: 3px 9px; white-space: nowrap; }
+    #ns-calc-widget .disclaimer-text { font-size: 0.85em; color: #6b7684; margin-top: 14px; text-align: center; }
+
+    @media (max-width: 640px) {
+        #ns-calc-widget { padding: 20px; }
+        #ns-calc-widget .inputs-row { flex-direction: column; gap: 14px; }
+        #ns-calc-widget .input-group:nth-child(1),
+        #ns-calc-widget .input-group:nth-child(2),
+        #ns-calc-widget .input-group:nth-child(3) { flex: 1; }
+        #ns-calc-widget #ns-result { padding: 18px; }
+    }
+
+</style>
+
+<script>
+    // 280~299 레벨 실제 필요 경험치 테이블 (BigInt) — ns 네임스페이스
+    const nsExpTable = {
+        280: 11645168266000000n, 281: 12169200838000000n, 282: 12716814876000000n, 283: 13289071545000000n, 284: 13887079765000000n,
+        285: 29023996709000000n, 286: 30330076561000000n, 287: 31694930006000000n, 288: 33121201856000000n, 289: 34611655940000000n,
+        290: 72338360915000000n, 291: 75593587156000000n, 292: 78995298578000000n, 293: 82550087014000000n, 294: 86264840930000000n,
+        295: 180293517544000000n, 296: 188406725833000000n, 297: 196885028496000000n, 298: 205744854778000000n, 299: 215003373243000000n
+    };
+
+    const nsLevelData = {
+        "280": { basic: "3.0885", step1: "15.4425", step2: "27.7965" },
+        "281": { basic: "2.8461", step1: "14.2305", step2: "25.6149" },
+        "282": { basic: "2.6183", step1: "13.0915", step2: "23.5647" },
+        "283": { basic: "2.4124", step1: "12.0620", step2: "21.7116" },
+        "284": { basic: "2.2191", step1: "11.0955", step2: "19.9719" },
+        "285": { basic: "1.2348", step1: "6.1740", step2: "11.1132" },
+        "286": { basic: "1.1357", step1: "5.6785", step2: "10.2213" },
+        "287": { basic: "1.0458", step1: "5.2290", step2: "9.4122" },
+        "288": { basic: "0.9631", step1: "4.8155", step2: "8.6679" },
+        "289": { basic: "0.8854", step1: "4.4270", step2: "7.9686" },
+        "290": { basic: "0.4925", step1: "2.4625", step2: "4.4325" },
+        "291": { basic: "0.4528", step1: "2.2640", step2: "4.0752" },
+        "292": { basic: "0.4168", step1: "2.0840", step2: "3.7512" },
+        "293": { basic: "0.3833", step1: "1.9165", step2: "3.4497" },
+        "294": { basic: "0.3526", step1: "1.7630", step2: "3.1734" },
+        "295": { basic: "0.1745", step1: "0.8725", step2: "1.5705" },
+        "296": { basic: "0.1587", step1: "0.7935", step2: "1.4283" },
+        "297": { basic: "0.1442", step1: "0.7210", step2: "1.2978" },
+        "298": { basic: "0.1311", step1: "0.6555", step2: "1.1799" },
+        "299": { basic: "0.0874", step1: "0.4370", step2: "0.7866" }
+    };
+
+    // 아티팩트 / 코어 상태 및 보너스 값 (단위: %) — 버닝 BEYOND 없음
+    let nsArtifactOn = false;      // 아티팩트 활성화 시 +150%
+    let nsCoreLevel = 0;           // 코어 레벨 0(없음) ~ 5(기존)/6(신규)
+    let nsTotal25On = false;       // 코어 레벨 총합 25레벨 (+10%)
+    const nsArtifactBonus = 150;   // 아티팩트 보너스 (%)
+    const nsTotal25Bonus = 10;     // 코어 총합 25레벨 보너스 (%)
+
+    // 🕓 데이터 자동 전환: 2026-07-23 오전 4시(KST) 이후 신규 데이터 사용
+    const nsNewDataTime = new Date('2026-07-23T04:00:00+09:00');
+    const nsUseNewData = new Date() >= nsNewDataTime;
+
+    // 코어 보너스 (1~5레벨 동일, 전환 후 6레벨 +40% 추가)
+    const nsCoreBonus = nsUseNewData
+        ? { 1: 2, 2: 5, 3: 10, 4: 20, 5: 30, 6: 40 }
+        : { 1: 2, 2: 5, 3: 10, 4: 20, 5: 30 };
+
+    // 전환 전에는 6레벨 버튼·총합25 칸 숨김, 전환 후엔 안내 문구 숨김
+    function nsApplyDataMode() {
+        const core6 = document.getElementById('ns-core6Btn');
+        const total25 = document.getElementById('ns-total25Btn');
+        const total25Div = document.getElementById('ns-total25Divider');
+        const notice = document.getElementById('ns-update-notice');
+        if (core6) core6.style.display = nsUseNewData ? '' : 'none';
+        if (total25) total25.style.display = nsUseNewData ? '' : 'none';
+        if (total25Div) total25Div.style.display = nsUseNewData ? '' : 'none';
+        if (notice) notice.style.display = nsUseNewData ? 'none' : '';
+    }
+
+    function nsToggleArtifact() {
+        nsArtifactOn = !nsArtifactOn;
+        document.getElementById('ns-artifactBtn').classList.toggle('active', nsArtifactOn);
+    }
+
+    function nsToggleTotal25() {
+        nsTotal25On = !nsTotal25On;
+        document.getElementById('ns-total25Btn').classList.toggle('active', nsTotal25On);
+    }
+
+    function nsSelectCore(lv) {
+        nsCoreLevel = lv; // 0 = 보너스 없음
+        const btns = document.querySelectorAll('#ns-coreLevels .core-lv');
+        btns.forEach(btn => {
+            const v = parseInt(btn.getAttribute('data-lv'), 10);
+            btn.classList.toggle('active', v === nsCoreLevel);
+        });
+    }
+
+    function nsCalculateExp() {
+        const levelInput = document.getElementById('ns-levelInput').value;
+        const expInput = document.getElementById('ns-expInput').value;
+        const stepSelect = document.getElementById('ns-stepSelect').value;
+        const resultDiv = document.getElementById('ns-result');
+
+        if (!levelInput) { resultDiv.innerHTML = `<div class="error-message">레벨을 입력해 주세요.</div>`; return; }
+        if (!expInput) { resultDiv.innerHTML = `<div class="error-message">현재 경험치를 입력해 주세요. (0 입력 가능)</div>`; return; }
+
+        const levelNum = parseInt(levelInput, 10);
+
+        // 악몽선경 레벨 제한
+        if (levelNum < 280) { resultDiv.innerHTML = `<div class="error-message">280부터 지원합니다.</div>`; return; }
+        if (levelNum >= 300) { resultDiv.innerHTML = `<div class="congratulation-message">만렙 축하드립니다</div>`; return; }
+
+        const currentExpStr = expInput;
+        const gainExpStr = nsLevelData[levelInput][stepSelect];
+
+        if (parseFloat(currentExpStr) < 0 || parseFloat(currentExpStr) >= 100) { resultDiv.innerHTML = `<div class="error-message">경험치는 0 이상 100 미만이어야 합니다.</div>`; return; }
+
+        const currentPool = nsExpTable[levelNum];
+
+        const currentExpScaled = BigInt(Math.round(parseFloat(currentExpStr) * 10000));
+        let gainExpScaled = BigInt(Math.round(parseFloat(gainExpStr) * 10000));
+
+        // [아티팩트 + 코어] '기본 경험치'에 적용 → 선택 단계 값에 합산
+        // 추가분 = 기본 경험치값 × 보너스%(아티팩트+코어). 단계와 무관하게 더해짐.
+        let bonusPercent = 0;
+        if (nsArtifactOn) bonusPercent += nsArtifactBonus;
+        if (nsCoreLevel > 0) bonusPercent += (nsCoreBonus[nsCoreLevel] || 0);
+        if (nsTotal25On) bonusPercent += nsTotal25Bonus;
+        if (bonusPercent > 0) {
+            const baseGainScaled = BigInt(Math.round(parseFloat(nsLevelData[levelInput].basic) * 10000));
+            gainExpScaled = gainExpScaled + (baseGainScaled * BigInt(bonusPercent)) / 100n;
+        }
+
+        // 절대 경험치를 고정밀(×1,000,000)로 누적해 반올림 오차 최소화
+        let totalExpMicro = currentPool * (currentExpScaled + gainExpScaled);
+
+        let displayLevel = levelNum;
+
+        // 초과 경험치 차감 및 레벨업 (버닝 비욘드 없음)
+        while (displayLevel < 300 && totalExpMicro >= nsExpTable[displayLevel] * 1000000n) {
+            totalExpMicro -= nsExpTable[displayLevel] * 1000000n;
+            displayLevel++;
+        }
+
+        let finalExpPercentStr = "0.000";
+        if (displayLevel >= 300) {
+            displayLevel = 300;
+            finalExpPercentStr = "0.000";
+        } else {
+            const nextPool = nsExpTable[displayLevel];
+            const denom = 10n * nextPool;
+            let percentScaled = (totalExpMicro + denom / 2n) / denom;
+            if (percentScaled > 99999n) percentScaled = 99999n;
+            const intPart = percentScaled / 1000n;
+            const decPart = percentScaled % 1000n;
+            finalExpPercentStr = intPart.toString() + "." + decPart.toString().padStart(3, "0");
+        }
+
+        const currentExpDisp = parseFloat(currentExpStr).toFixed(3);
+        const gainExpDisp = (Number(gainExpScaled) / 10000).toFixed(3);
+
+        let html = `
+            <div class="result-row">
+                <span class="label">기존 경험치</span>
+                <span>${currentExpDisp}%</span>
+            </div>
+            <div class="result-row">
+                <span class="label">상승 경험치</span>
+                <span class="highlight-gain">+${gainExpDisp}%</span>
+            </div>
+        `;
+
+        // 적용 옵션 칩
+        let chips = [];
+        if (nsArtifactOn) chips.push("에테리온 아티팩트 +" + nsArtifactBonus + "%");
+        if (nsCoreLevel > 0) chips.push("코어 " + nsCoreLevel + "레벨 +" + (nsCoreBonus[nsCoreLevel] || 0) + "%");
+        if (nsTotal25On) chips.push("코어 총합 25레벨 +" + nsTotal25Bonus + "%");
+        if (chips.length > 0) {
+            html += `<div class="applied-opts">` + chips.map(c => `<span class="opt-chip">${c}</span>`).join("") + `</div>`;
+        }
+
+        const finalClass = (displayLevel > levelNum) ? "highlight-levelup" : "highlight-gain";
+        html += `
+            <div class="result-row total">
+                <span>최종 레벨</span>
+                <span class="${finalClass}">${displayLevel}레벨 ${finalExpPercentStr}%</span>
+            </div>
+            <div class="disclaimer-text">※ 약간의 차이가 있을 수 있습니다.</div>
+        `;
+
+        resultDiv.innerHTML = html;
+    }
+
+    // 엔터키 입력 이벤트
+    document.addEventListener('DOMContentLoaded', function() {
+        nsApplyDataMode();
+        const inputs = document.querySelectorAll('#ns-calc-widget input');
+        inputs.forEach(input => {
+            input.addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') nsCalculateExp();
+            });
+        });
+    });
+</script>
+    </div>
+
+    <script>
+        function epicShow(target) {
+            ['hm','ac','ns'].forEach(function(t){
+                document.getElementById('panel-'+t).style.display = (t===target) ? '' : 'none';
+                var btn = document.querySelector('.epic-toggle button[data-target="'+t+'"]');
+                if (btn) btn.classList.toggle('active', t===target);
+            });
+        }
+        document.addEventListener('DOMContentLoaded', function(){
+            document.querySelectorAll('.epic-toggle button').forEach(function(b){
+                b.addEventListener('click', function(){ epicShow(b.dataset.target); });
+            });
+        });
+    </script>
+</body>
+</html>

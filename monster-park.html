@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>몬스터파크 경험치 계산기</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+    <style>html,body{margin:0;padding:0;background:#191f28;}body{padding:28px 16px 44px;}</style>
+</head>
+<body>
+
+    <div class="potion-calculator-container">
+        <h1>
+            <img src="https://k.kakaocdn.net/dn/co4Z2t/dJMcac9rwCx/AAAAAAAAAAAAAAAAAAAAAAxEHEKeECHLt2mWkiayv7h7enoj3i1zvZHmIJH-BLN3/img.png" class="title-icon" alt="icon">
+            몬스터파크 경험치 계산기
+        </h1>
+        
+        <div class="input-grid">
+            <div class="input-item" style="flex: 1.2;">
+                <label for="charLevelInput">캐릭터 레벨</label>
+                <input type="number" id="charLevelInput" placeholder="레벨 입력 (200~299)" oninput="autoDetectZone()">
+            </div>
+            <div class="input-item" style="flex: 1;">
+                 <label for="currentExpInput">현재 경험치 (%)</label>
+                 <input type="number" id="currentExpInput" placeholder="기본값 0%">
+            </div>
+        </div>
+
+        <div class="auto-zone-display">
+            <span>자동 감지 지역:</span>
+            <span id="autoZoneName">-</span>
+        </div>
+        <div id="zoneChoiceContainer" class="input-item" style="display: none; margin-bottom: 20px;">
+             <label>지역 선택 (중복 구간)</label>
+             <div id="zoneChoiceButtons" class="button-group"></div>
+        </div>
+
+        <div class="input-item" style="margin-bottom: 16px; align-items: center;">
+             <label>적용 효과</label>
+             <div id="eventTypeButtons" class="button-group" style="justify-content: center;"></div>
+        </div>
+
+        <div class="input-grid">
+            <div class="input-item">
+                 <label>판수 선택</label>
+                 <div id="roundsButtons" class="button-group"></div>
+            </div>
+            <div class="input-item">
+                 <label>보약 레벨 선택</label>
+                 <div id="tonicLevelButtons" class="button-group"></div>
+            </div>
+        </div>
+
+        <div class="mp-options-area">
+            <!-- 하이퍼 버닝 MAX -->
+            <div class="mp-toggle-box" id="mp-hyperBtn" role="button" tabindex="0" onclick="mpToggleHyper()">
+                <img class="mp-toggle-icon" src="https://k.kakaocdn.net/dn/Xs1CG/dJMcahx922p/AAAAAAAAAAAAAAAAAAAAABVrNUru04FCMYFOUIeUyWv2NICez7cP3nTuDst-YYPv/img.png" alt="">
+                <span class="mp-toggle-text">하이퍼 버닝 MAX</span>
+                <span class="mp-switch"><span class="mp-knob"></span></span>
+            </div>
+
+            <!-- 버닝 BEYOND -->
+            <div class="mp-toggle-box" id="mp-burningBtn" role="button" tabindex="0" onclick="mpToggleBurning()">
+                <img class="mp-toggle-icon" src="https://k.kakaocdn.net/dn/Xs1CG/dJMcahx922p/AAAAAAAAAAAAAAAAAAAAABVrNUru04FCMYFOUIeUyWv2NICez7cP3nTuDst-YYPv/img.png" alt="">
+                <span class="mp-toggle-text">버닝 BEYOND</span>
+                <span class="mp-switch"><span class="mp-knob"></span></span>
+            </div>
+
+            <!-- 에테리온 아티팩트 + 코어 + 코어 총합 20레벨 -->
+            <div class="mp-artifact-core-box">
+                <div class="mp-ac-top" id="mp-artifactBtn" role="button" tabindex="0" onclick="mpToggleArtifact()">
+                    <img class="mp-toggle-icon" src="https://k.kakaocdn.net/dn/RnHPl/dJMcad3wFL9/AAAAAAAAAAAAAAAAAAAAAKtKoHNwpRg4ImB6VxgkC1NazPzObm1yLE-NdezWascq/img.png" alt="">
+                    <span class="mp-toggle-text">에테리온 아티팩트</span>
+                    <span class="mp-switch"><span class="mp-knob"></span></span>
+                </div>
+                <div class="mp-ac-divider"></div>
+                <div class="mp-ac-core">
+                    <span class="mp-core-label">코어 레벨</span>
+                    <div class="mp-core-levels" id="mp-coreLevels">
+                        <button type="button" class="mp-core-lv active" data-lv="0" onclick="mpSelectCore(0)">0</button>
+                        <button type="button" class="mp-core-lv" data-lv="1" onclick="mpSelectCore(1)">1</button>
+                        <button type="button" class="mp-core-lv" data-lv="2" onclick="mpSelectCore(2)">2</button>
+                        <button type="button" class="mp-core-lv" data-lv="3" onclick="mpSelectCore(3)">3</button>
+                        <button type="button" class="mp-core-lv" data-lv="4" onclick="mpSelectCore(4)">4</button>
+                        <button type="button" class="mp-core-lv" data-lv="5" onclick="mpSelectCore(5)">5</button>
+                        <button type="button" class="mp-core-lv" id="mp-core6Btn" data-lv="6" onclick="mpSelectCore(6)">6</button>
+                    </div>
+                </div>
+                <div class="mp-ac-divider" id="mp-core20Divider"></div>
+                <div class="mp-ac-core20" id="mp-core20Btn" role="button" tabindex="0" onclick="mpToggleCore20()">
+                    <span class="mp-core-label">코어 레벨 총합 20레벨</span>
+                    <span class="mp-switch"><span class="mp-knob"></span></span>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="calculateResult()" class="main-calc-button">계산하기</button>
+
+        <div id="result">
+            <div class="result-placeholder">모든 값을 선택하고 계산하기를 눌러주세요.</div>
+        </div>
+
+        <div id="mp-update-notice" class="mp-update-notice">변경된 내용은 23일 오전 4시에 반영됩니다.</div>
+    </div>
+
+    <style>
+
+        .potion-calculator-container {
+            box-sizing: border-box; width: 100%; max-width: 620px; margin: 0 auto;
+            padding: 26px; background-color: #202632; border: 1px solid #333b48; border-radius: 16px;
+            text-align: center;
+            font-family: 'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+            letter-spacing: -0.3px; -webkit-font-smoothing: antialiased;
+        }
+        .potion-calculator-container h1 { color: #f9fafb; margin-top: 0; margin-bottom: 22px; font-size: 1.3em; font-weight: 800;
+            display: flex; align-items: center; justify-content: center; }
+        .title-icon { width: 26px; height: 26px; margin-right: 8px; }
+
+        .potion-calculator-container .input-grid { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; }
+        .potion-calculator-container .input-item { flex: 1; display: flex; flex-direction: column; }
+        .input-grid .input-item, .input-item { align-items: center; }
+        .potion-calculator-container .input-item label { margin-bottom: 8px; font-size: 0.9em; color: #8b95a1; font-weight: 700; white-space: nowrap; }
+        .potion-calculator-container .input-item input {
+            box-sizing: border-box; width: 100%; padding: 11px 12px; border-radius: 8px;
+            border: 1px solid #333b48; font-size: 15px; text-align: center; height: 46px;
+            background-color: #191f28; color: #f9fafb; font-family: inherit; transition: border-color 0.2s;
+        }
+        .potion-calculator-container .input-item input::placeholder { color: #6b7684; }
+        .potion-calculator-container .input-item input:focus { outline: none; border-color: #3182f6; }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; }
+
+        .auto-zone-display {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            width: 100%; box-sizing: border-box; font-size: 0.88em; color: #8b95a1;
+            background-color: #191f28; border: 1px solid #333b48; border-radius: 8px;
+            padding: 9px 12px; margin-bottom: 16px;
+        }
+        .auto-zone-display #autoZoneName { font-weight: 700; color: #5b9dff; }
+
+        .button-group { display: flex; gap: 6px; width: 100%; }
+        .choice-button {
+            flex: 1 1 0; padding: 6px; font-size: 13px; line-height: 1.3;
+            border: 1px solid #333b48; border-radius: 8px; background-color: #191f28;
+            color: #b0b8c1; cursor: pointer; font-family: inherit; transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+            min-height: 44px; display: flex; justify-content: center; align-items: center;
+        }
+        .choice-button:hover { border-color: #3f4c60; }
+        .choice-button.active { background-color: #3182f6; color: white; border-color: #3182f6; font-weight: 700; }
+        .choice-button.sunday-btn.active { background-color: #ff5b6e; border-color: #ff5b6e; }
+        .choice-button.special-btn.active { background-color: #2fbf5a; border-color: #2fbf5a; }
+
+        .potion-calculator-container .mp-options-area { display: flex; flex-direction: column; gap: 8px; margin: 20px 0; }
+        .potion-calculator-container .mp-toggle-box {
+            display: flex; align-items: center; gap: 11px; padding: 11px 14px;
+            border-radius: 10px; border: 1px solid #333b48; background: #191f28;
+            cursor: pointer; user-select: none; transition: border-color .2s, box-shadow .2s;
+        }
+        .potion-calculator-container .mp-toggle-box:hover,
+        .potion-calculator-container .mp-ac-top:hover { border-color: #3f4c60; }
+        .potion-calculator-container .mp-toggle-box.active { border-color: #ff8a3d; box-shadow: 0 2px 8px rgba(255,138,61,.18); }
+        .potion-calculator-container .mp-artifact-core-box {
+            border: 1px solid #333b48; border-radius: 10px; background: #191f28; overflow: hidden;
+            transition: border-color .2s, box-shadow .2s;
+        }
+        .potion-calculator-container .mp-artifact-core-box:has(.mp-ac-top.active),
+        .potion-calculator-container .mp-artifact-core-box:has(.mp-ac-core20.active) { border-color: #ff8a3d; box-shadow: 0 2px 8px rgba(255,138,61,.18); }
+        .potion-calculator-container .mp-ac-top { display: flex; align-items: center; gap: 11px; padding: 11px 14px; cursor: pointer; user-select: none; }
+        .potion-calculator-container .mp-ac-divider { height: 1px; background: #2b323e; }
+        .potion-calculator-container .mp-ac-core { display: flex; align-items: center; gap: 10px; padding: 11px 14px; }
+        .potion-calculator-container .mp-ac-core20 { display: flex; align-items: center; gap: 10px; padding: 11px 14px; cursor: pointer; user-select: none; }
+        .potion-calculator-container .mp-ac-core20 .mp-core-label { color: #8b95a1; }
+        .potion-calculator-container .mp-ac-core20.active .mp-core-label { color: #ff8a3d; }
+        .potion-calculator-container .mp-ac-core20 .mp-switch { margin-left: auto; }
+        .potion-calculator-container .mp-ac-core20.active .mp-switch { background: #ff8a3d; }
+        .potion-calculator-container .mp-ac-core20.active .mp-knob { left: 22px; }
+        .potion-calculator-container .mp-toggle-icon { width: 26px; height: 26px; flex: 0 0 26px; border-radius: 5px; object-fit: cover; }
+        .potion-calculator-container .mp-toggle-text { font-size: 14px; font-weight: 700; color: #b0b8c1; white-space: nowrap; }
+        .potion-calculator-container .mp-toggle-box.active .mp-toggle-text,
+        .potion-calculator-container .mp-ac-top.active .mp-toggle-text { color: #ff8a3d; }
+        .potion-calculator-container .mp-switch { position: relative; width: 44px; height: 24px; flex: 0 0 44px; margin-left: auto; background: #3a4453; border-radius: 12px; transition: background-color .25s; }
+        .potion-calculator-container .mp-knob { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: #fff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,.4); transition: left .25s; }
+        .potion-calculator-container .mp-toggle-box.active .mp-switch,
+        .potion-calculator-container .mp-ac-top.active .mp-switch { background: #ff8a3d; }
+        .potion-calculator-container .mp-toggle-box.active .mp-knob,
+        .potion-calculator-container .mp-ac-top.active .mp-knob { left: 22px; }
+        .potion-calculator-container .mp-core-label { font-size: 14px; font-weight: 700; color: #8b95a1; white-space: nowrap; }
+        .potion-calculator-container .mp-core-levels { display: flex; gap: 6px; margin-left: auto; }
+        .potion-calculator-container .mp-core-lv { width: 32px; height: 32px; padding: 0; border-radius: 6px; border: 1px solid #333b48; background: #191f28; color: #b0b8c1; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s; }
+        .potion-calculator-container .mp-core-lv:hover { border-color: #ff8a3d; }
+        .potion-calculator-container .mp-core-lv.active { background: #ff8a3d; border-color: #ff8a3d; color: #191f28; }
+        .potion-calculator-container .mp-applied { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid #2b323e; }
+        .potion-calculator-container .mp-chip { font-size: 0.78em; font-weight: 600; color: #ff8a3d; background: rgba(255,138,61,.1); border: 1px solid rgba(255,138,61,.35); border-radius: 5px; padding: 3px 9px; white-space: nowrap; }
+
+        .main-calc-button {
+            width: 100%; padding: 14px 20px; border: none; border-radius: 11px;
+            background-color: #3182f6; color: white; font-size: 15px; font-weight: 700;
+            cursor: pointer; margin-top: 6px; font-family: inherit; transition: background-color 0.2s;
+        }
+        .main-calc-button:hover { background-color: #1f6fe8; }
+
+        .potion-calculator-container #result {
+            box-sizing: border-box; margin-top: 18px; padding: 20px; background-color: #12161d;
+            border: 1px solid #333b48; border-radius: 12px; min-height: 28px; line-height: 1.6; font-size: 1.1em; color: #b0b8c1;
+        }
+        .result-placeholder, .error-message { font-weight: 700; color: #ff5b6e; text-align: center; }
+        .result-placeholder { color: #6b7684; font-weight: normal; }
+        .disclaimer { font-size: 0.8em; color: #6b7684; margin-top: 10px; text-align: center; display: block; }
+        .mp-update-notice {
+            margin-top: 14px; text-align: center; font-size: 0.85em; font-weight: 700; color: #ff8a3d;
+            background-color: rgba(255,138,61,.1); border: 1px solid rgba(255,138,61,.35); border-radius: 8px; padding: 10px 12px;
+        }
+
+        @media (max-width: 640px) {
+            .potion-calculator-container { padding: 20px; }
+            .potion-calculator-container .input-grid { flex-direction: column; gap: 0; }
+            .potion-calculator-container .input-item { margin-bottom: 16px; width: 100%; }
+        }
+
+    </style>
+    <script>
+        // 🎯 1. 레벨별 요구 경험치 (200~259) - 오차율 0% 핵심 데이터
+        const levelExpData = {
+            200: 2207026470, 201: 2471869646, 202: 2768494003, 203: 3100713283, 204: 3472798876, 205: 3889534741, 206: 4356278909, 207: 4879032378, 208: 5464516263, 209: 6120258214,
+            210: 7344309856, 211: 8152183940, 212: 9048924173, 213: 10044305832, 214: 11149179473, 215: 13379015367, 216: 14583126750, 217: 15895608157, 218: 17326212891, 219: 18885572051,
+            220: 22662686461, 221: 24249074513, 222: 25946509728, 223: 27762765408, 224: 29706158986, 225: 35647390783, 226: 38142708137, 227: 40812697706, 228: 43669586545, 229: 46726457603,
+            230: 56071749123, 231: 57753901596, 232: 59486518643, 233: 61271114202, 234: 63109247628, 235: 75731097153, 236: 78003030067, 237: 80343120969, 238: 82753414598, 239: 85236017035,
+            240: 102283220442, 241: 105351717055, 242: 108512268566, 243: 111767636622, 244: 115120665720, 245: 138144798864, 246: 142289142829, 247: 146557817113, 248: 150954551626, 249: 155483188174,
+            250: 186579825808, 251: 192177220582, 252: 197942537199, 253: 203880813314, 254: 209997237713, 255: 216297154844, 256: 222786069489, 257: 229469651573, 258: 236353741120, 259: 243444353353
+        };
+
+        // 🎯 2. 지역별 몬파 1판 획득 경험치 - 오차율 0% 핵심 데이터
+        const regionExpData = {
+            "소멸의 여로": 359915080, "츄츄 아일랜드": 1285078680, "꿈의 도시 레헬른": 3217660990, "신비의 숲 아르카나": 4707573370, "기억의 늪 모라스": 5993511040, 
+            "에스페라": 6919667370, "셀라스": 8712814920, "문브릿지": 11716616500, "고통의 미궁": 14058901000, "리멘": 15552557400
+        };
+
+        const regionLevelRanges = [
+            { name: "소멸의 여로", start: 200, end: 209 }, { name: "츄츄 아일랜드", start: 210, end: 219 }, { name: "꿈의 도시 레헬른", start: 220, end: 224 },
+            { name: "신비의 숲 아르카나", start: 225, end: 229 }, { name: "기억의 늪 모라스", start: 230, end: 234 }, { name: "에스페라", start: 235, end: 239 },
+            { name: "셀라스", start: 240, end: 244 }, { name: "문브릿지", start: 245, end: 249 }, { name: "고통의 미궁", start: 250, end: 254 },
+            { name: "리멘", start: 255, end: 259 }
+        ];
+
+        // 🎯 [신규] 기존 260 이후 % 데이터 (절대치 데이터 부족 구간 대체용)
+        const oldPercentData = {
+            "세르니움": {"start":260, "end":264, "data":{"260":2.1638,"261":2.1423,"262":2.1211,"263":2.1001,"264":2.0793}},
+            "아르크스": {"start":265, "end":269, "data":{"265":1.8966,"266":1.8778,"267":1.8592,"268":1.8408,"269":1.8226}},
+            "오디움": {"start":270, "end":274, "data":{"270":0.9759,"271":0.9662,"272":0.9566,"273":0.9472,"274":0.9378}},
+            "도원경": {"start":275, "end":279, "data":{"275":0.6743, "276":0.6124, "277":0.5567, "278":0.5061, "279":0.4601}},
+            "아르테리아": {"start":280, "end":284, "data":{"280":0.3186, "281":0.2896, "282":0.2633, "283":0.2394, "284":0.2176}},
+            "카르시온": {"start":285, "end":289, "data":{"285":0.1568, "286":0.1425, "287":0.1296, "288":0.1178, "289":0.1071}},
+            "탈라하트": {"start":290, "end":299, "data":{"290":0.0743, "291":0.0675, "292":0.0614, "293":0.0558, "294":0.0507, "295":0.0251, "296":0.0228, "297":0.0208, "298":0.0189, "299":0.0126}}
+        };
+
+        const otherRegions = Object.keys(oldPercentData).map(key => ({ name: key, start: oldPercentData[key].start, end: oldPercentData[key].end }));
+        const allRegions = [...regionLevelRanges, ...otherRegions];
+
+        const eventAdditives = { "기본": 0, "일요일": 0.5, "스페셜<br>썬데이": 3.0 };
+        const tonicAdditives = { "0": 0, "1": 0.05, "2": 0.10, "3": 0.20, "4": 0.30, "5": 0.40, "6": 0.50 };
+
+        function getDetectedZones(levelNum) {
+            let zones = [];
+            for (const zone of allRegions) {
+                if (levelNum >= zone.start && levelNum <= zone.end) {
+                    zones.push(zone.name);
+                }
+            }
+            return zones;
+        }
+
+        function autoDetectZone() {
+            const levelNum = parseInt(document.getElementById('charLevelInput').value, 10);
+            const autoZoneName = document.getElementById('autoZoneName');
+            autoZoneName.style.fontWeight = 'bold';
+            if (isNaN(levelNum)) { autoZoneName.textContent = '-'; return; }
+            if (levelNum < 200) { autoZoneName.textContent = '200부터 지원합니다.'; return; }
+            if (levelNum >= 300) { autoZoneName.textContent = '부캐에 양보하세요~'; return; }
+
+            let detectedZones = getDetectedZones(levelNum);
+            if (detectedZones.includes("리멘") && detectedZones.includes("고통의 미궁")) {
+                detectedZones = detectedZones.filter(z => z !== "고통의 미궁");
+            }
+            if (detectedZones.includes("세르니움") && detectedZones.includes("리멘")) {
+                detectedZones = detectedZones.filter(z => z !== "리멘");
+            }
+
+            autoZoneName.textContent = detectedZones.join(' / ') || '-';
+            
+            const zoneChoiceContainer = document.getElementById('zoneChoiceContainer');
+            if (detectedZones.length > 1) {
+                const zoneChoiceButtons = document.getElementById('zoneChoiceButtons');
+                zoneChoiceButtons.innerHTML = '';
+                detectedZones.forEach(zone => {
+                    const button = document.createElement('button');
+                    button.type = 'button'; button.className = 'choice-button';
+                    button.dataset.value = zone; button.innerHTML = zone;
+                    zoneChoiceButtons.appendChild(button);
+                });
+                zoneChoiceButtons.firstChild.classList.add('active');
+                
+                zoneChoiceButtons.querySelectorAll('.choice-button').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        zoneChoiceButtons.querySelectorAll('.choice-button').forEach(b => b.classList.remove('active'));
+                        this.classList.add('active');
+                    });
+                });
+                zoneChoiceContainer.style.display = 'block';
+            } else {
+                zoneChoiceContainer.style.display = 'none';
+            }
+        }
+
+        // 옵션 상태 및 보너스 (몬스터파크 기준)
+        let mpHyperOn = false;      // 하이퍼 버닝 MAX (200~259 구간 레벨업당 +5)
+        let mpBurningOn = false;    // 버닝 비욘드 (260~280 구간 레벨업당 +1)
+        let mpArtifactOn = false;   // 에테리온 아티팩트 (+30%)
+        let mpCoreLevel = 0;        // 코어 0~5(기존) / 0~6(신규)
+        let mpCore20On = false;     // 코어 레벨 총합 20레벨 (+5%)
+        const mpArtifactBonus = 30; // 몬스터파크 아티팩트 보너스 (%)
+        const mpCore20Bonus = 5;    // 코어 총합 20레벨 보너스 (%)
+
+        // 🕓 데이터 자동 전환: 2026-07-23 오전 4시(KST) 이후 신규 데이터 사용
+        const MP_NEW_DATA_TIME = new Date('2026-07-23T04:00:00+09:00');
+        const mpUseNewData = new Date() >= MP_NEW_DATA_TIME;
+
+        // 코어 보너스 값 (전환 전=기존 / 전환 후=신규)
+        const mpCoreBonus = mpUseNewData
+            ? { 1: 1, 2: 2, 3: 3, 4: 6, 5: 10, 6: 15 }  // 신규 데이터 (전환 후)
+            : { 1: 1, 2: 2, 3: 3, 4: 4, 5: 6 };         // 기존 데이터 (전환 전, 5레벨까지)
+
+        // 전환 전에는 코어 6레벨 버튼과 코어 총합 20레벨 칸을 숨김, 전환 후엔 안내 문구 숨김
+        function mpApplyDataMode() {
+            const show = mpUseNewData ? 'none' : '';
+            const core6 = document.getElementById('mp-core6Btn');
+            const core20 = document.getElementById('mp-core20Btn');
+            const core20Div = document.getElementById('mp-core20Divider');
+            const notice = document.getElementById('mp-update-notice');
+            if (core6) core6.style.display = mpUseNewData ? '' : 'none';
+            if (core20) core20.style.display = mpUseNewData ? '' : 'none';
+            if (core20Div) core20Div.style.display = mpUseNewData ? '' : 'none';
+            if (notice) notice.style.display = mpUseNewData ? 'none' : '';  // 4시 지나면 문구 삭제
+        }
+
+        function mpToggleHyper() { mpHyperOn = !mpHyperOn; document.getElementById('mp-hyperBtn').classList.toggle('active', mpHyperOn); }
+        function mpToggleBurning() { mpBurningOn = !mpBurningOn; document.getElementById('mp-burningBtn').classList.toggle('active', mpBurningOn); }
+        function mpToggleArtifact() { mpArtifactOn = !mpArtifactOn; document.getElementById('mp-artifactBtn').classList.toggle('active', mpArtifactOn); }
+        function mpToggleCore20() { mpCore20On = !mpCore20On; document.getElementById('mp-core20Btn').classList.toggle('active', mpCore20On); }
+        function mpSelectCore(lv) {
+            mpCoreLevel = lv; // 0 = 보너스 없음
+            document.querySelectorAll('#mp-coreLevels .mp-core-lv').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.getAttribute('data-lv'), 10) === mpCoreLevel);
+            });
+        }
+
+        function calculateResult() {
+            const charLevelInput = document.getElementById('charLevelInput');
+            const currentExpInput = document.getElementById('currentExpInput'); 
+            const resultDiv = document.getElementById('result');
+            const roundsButton = document.querySelector('#roundsButtons .active');
+            const eventTypeButton = document.querySelector('#eventTypeButtons .active');
+            const tonicLevelButton = document.querySelector('#tonicLevelButtons .active');
+
+
+            if (!charLevelInput.value) { resultDiv.innerHTML = `<div class="error-message">캐릭터 레벨을 입력해주세요.</div>`; return; }
+            if (!roundsButton) { resultDiv.innerHTML = `<div class="error-message">판수를 선택해주세요.</div>`; return; }
+            if (!eventTypeButton) { resultDiv.innerHTML = `<div class="error-message">적용 효과를 선택해주세요.</div>`; return; }
+            if (!tonicLevelButton) { resultDiv.innerHTML = `<div class="error-message">보약 레벨을 선택해주세요.</div>`; return; }
+
+            let currentLevel = parseInt(charLevelInput.value, 10);
+            let currentExpPercent = parseFloat(currentExpInput.value) || 0; 
+            if (currentExpPercent < 0 || currentExpPercent >= 100) {
+                 resultDiv.innerHTML = `<div class="error-message">현재 경험치는 0~99.99 사이로 입력해주세요.</div>`; return;
+            }
+
+            const rounds = parseInt(roundsButton.dataset.value, 10);
+            const eventAdd = eventAdditives[eventTypeButton.dataset.value] || 0;
+            const tonicAdd = tonicAdditives[tonicLevelButton.dataset.value] || 0;
+            // 에테리온 아티팩트 + 코어 + 코어 총합 20레벨 → 몬스터파크 기본 경험치에 합산 (단위 %)
+            const artifactCoreBonus = (mpArtifactOn ? mpArtifactBonus : 0)
+                + (mpCoreLevel > 0 ? (mpCoreBonus[mpCoreLevel] || 0) : 0)
+                + (mpCore20On ? mpCore20Bonus : 0);
+            const totalMultiplier = (100 + Math.round(eventAdd * 100) + Math.round(tonicAdd * 100) + artifactCoreBonus) / 100;
+            const isBurning = mpHyperOn;
+
+            // 🎯 절대량 시뮬레이션: %를 입력받아 실제 경험치량으로 변환
+            let currentExpAbsolute = 0;
+            if (levelExpData[currentLevel]) {
+                currentExpAbsolute = (currentExpPercent / 100) * levelExpData[currentLevel];
+            } else {
+                currentExpAbsolute = currentExpPercent; // 260 이상 구간은 기존 % 방식 임시 혼용
+            }
+
+            for (let i = 0; i < rounds; i++) {
+                if (currentLevel >= 300) break;
+
+                let detectedZones = getDetectedZones(currentLevel);
+                if (detectedZones.includes("리멘") && detectedZones.includes("고통의 미궁")) detectedZones = detectedZones.filter(z => z !== "고통의 미궁");
+                if (detectedZones.includes("세르니움") && detectedZones.includes("리멘")) detectedZones = detectedZones.filter(z => z !== "리멘");
+
+                let selectedZoneName = detectedZones[0];
+                if (detectedZones.length > 1) {
+                    const zoneChoiceButton = document.querySelector('#zoneChoiceButtons .active');
+                    selectedZoneName = zoneChoiceButton ? zoneChoiceButton.dataset.value : detectedZones[0];
+                }
+
+                // 🎯 260 미만: 정밀 절대량 로직 / 260 이상: 기존 % 로직 분기
+                if (currentLevel < 260) {
+                    const regionBaseExp = regionExpData[selectedZoneName] || 0;
+                    if (regionBaseExp === 0) continue; 
+
+                    const expGainedThisRound = regionBaseExp * totalMultiplier;
+                    currentExpAbsolute += expGainedThisRound;
+
+                    while (levelExpData[currentLevel] && currentExpAbsolute >= levelExpData[currentLevel]) {
+                        let levelsToAdd = 1;
+                        if (isBurning && currentLevel >= 200 && currentLevel < 260) levelsToAdd = 5;
+
+                        const overflowExpAbsolute = currentExpAbsolute - levelExpData[currentLevel];
+                        let nextLevel = currentLevel + levelsToAdd;
+                        if (nextLevel > 300) nextLevel = 300;
+
+                        currentLevel = nextLevel;
+                        
+                        // 260 달성 시 남은 절대량을 %로 변환하여 이관
+                        if (currentLevel >= 260) {
+                            currentExpAbsolute = (overflowExpAbsolute / levelExpData[259]) * 100; // 대략적인 보정
+                            break; 
+                        } else {
+                            currentExpAbsolute = overflowExpAbsolute;
+                        }
+                    }
+                } else {
+                    // 260 이상 구간은 구 버전 로직(% 합산)
+                    let baseValue = oldPercentData[selectedZoneName]?.data[currentLevel] || 0;
+                    if (baseValue === 0) continue; 
+                    
+                    let expPerRound = baseValue * totalMultiplier;
+                    currentExpAbsolute += expPerRound; // 여기선 absolute가 % 의미
+
+                    while (currentExpAbsolute >= 100) {
+                        let overflow = currentExpAbsolute - 100;
+                        let inc = 1;
+                        if (mpBurningOn && currentLevel >= 260 && currentLevel <= 278) inc = 2; // 버닝 비욘드 +1 (결과 280 이하)
+                        let nextLevel = currentLevel + inc;
+                        if (nextLevel > 300) nextLevel = 300;
+
+                        let nextZones = getDetectedZones(nextLevel);
+                        let nextBaseValue = 0;
+                        if (nextZones.length > 0) {
+                            let zName = nextZones[0];
+                            nextBaseValue = oldPercentData[zName]?.data[nextLevel] || 0;
+                        }
+                        
+                        if (nextBaseValue === 0 || nextLevel === 300) {
+                            currentExpAbsolute = 0;
+                        } else {
+                            currentExpAbsolute = overflow * (nextBaseValue / baseValue);
+                        }
+                        currentLevel = nextLevel;
+                    }
+                }
+            }
+
+            // 루프 종료 후 최종 퍼센트 도출
+            let finalExpPercent = 0;
+            if (currentLevel < 260 && levelExpData[currentLevel]) {
+                finalExpPercent = (currentExpAbsolute / levelExpData[currentLevel]) * 100;
+            } else {
+                finalExpPercent = currentExpAbsolute; // 260 이상은 이미 %
+            }
+
+            const startLevel = parseInt(charLevelInput.value, 10);
+            const levelsGained = currentLevel - startLevel;
+            const formattedExp = finalExpPercent.toFixed(3);
+
+            let mpChips = [];
+            if (mpHyperOn) mpChips.push("하이퍼 버닝 MAX");
+            if (mpBurningOn) mpChips.push("버닝 BEYOND");
+            if (mpArtifactOn) mpChips.push("에테리온 아티팩트 +" + mpArtifactBonus + "%");
+            if (mpCoreLevel > 0) mpChips.push("코어 " + mpCoreLevel + "레벨 +" + mpCoreBonus[mpCoreLevel] + "%");
+            if (mpCore20On) mpChips.push("코어 총합 20레벨 +" + mpCore20Bonus + "%");
+            const mpChipsHtml = mpChips.length ? `<div class="mp-applied">${mpChips.map(c => `<span class="mp-chip">${c}</span>`).join("")}</div>` : "";
+
+            resultDiv.innerHTML = `
+                총 상승: <strong style="color: #d4ff00;">${levelsGained}</strong>레벨
+                <br>
+                <strong style="color: #5b9dff; display:inline-block; margin-top:5px; font-size:1.05em;">최종: ${currentLevel}레벨 ${formattedExp}%</strong>
+                ${mpChipsHtml}
+                <div class="disclaimer">(약간의 차이가 있을 수 있습니다)</div>
+            `;
+        }
+        
+        function createUI() {
+            const roundsContainer = document.getElementById('roundsButtons');
+            for(let i = 1; i <= 7; i++){
+                const button = document.createElement('button');
+                button.type = 'button'; button.className = 'choice-button';
+                button.dataset.value = i; button.innerHTML = `${i}판`;
+                roundsContainer.appendChild(button);
+            }
+
+            const eventTypeContainer = document.getElementById('eventTypeButtons');
+            const eventTypes = ["기본", "일요일", "스페셜<br>썬데이"];
+            eventTypes.forEach(type => {
+                const button = document.createElement('button');
+                button.type = 'button'; button.className = 'choice-button';
+                button.dataset.value = type; 
+                button.innerHTML = type;
+                if (type === "일요일") button.classList.add('sunday-btn');
+                if (type === "스페셜<br>썬데이") button.classList.add('special-btn');
+                eventTypeContainer.appendChild(button);
+            });
+
+            const tonicLevelContainer = document.getElementById('tonicLevelButtons');
+            const tonicLabels = ["0", "1", "2", "3", "4", "5", "6"];
+            tonicLabels.forEach((label, index) => {
+                const button = document.createElement('button');
+                button.type = 'button'; button.className = 'choice-button';
+                button.dataset.value = index; button.innerHTML = label;
+                tonicLevelContainer.appendChild(button);
+            });
+
+            document.querySelectorAll('.button-group').forEach(group => {
+                group.addEventListener('click', function(e) {
+                    const clickedButton = e.target.closest('.choice-button');
+                    if (clickedButton) {
+                        group.querySelectorAll('.choice-button').forEach(btn => btn.classList.remove('active'));
+                        clickedButton.classList.add('active');
+                    }
+                });
+            });
+
+            document.querySelector('#roundsButtons .choice-button:first-child').classList.add('active');
+            document.querySelector('#eventTypeButtons .choice-button:first-child').classList.add('active');
+            document.querySelector('#tonicLevelButtons .choice-button:first-child').classList.add('active');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            createUI();
+            mpApplyDataMode();
+        });
+    </script>
+</body>
+</html>

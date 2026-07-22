@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIP 사우나 & MVP 리조트 계산기</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<style>
+    :root{
+        --bg:#191f28; --surface:#202632; --surface-2:#2b323e; --line:#333b48;
+        --text:#f9fafb; --text-2:#b0b8c1; --muted:#8b95a1;
+        --blue:#3182f6; --blue-bright:#5b9dff; --lime:#d4ff00; --red:#f04452;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; background:var(--bg); color:var(--text);
+        font-family:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+        letter-spacing:-0.3px; -webkit-font-smoothing:antialiased; }
+    body{ padding:28px 16px 44px; }
+    .calculator-container{ width:100%; max-width:620px; margin:0 auto; padding:26px;
+        background:var(--surface); border:1px solid var(--line); border-radius:16px; text-align:center; }
+    .calculator-container h1{ color:var(--text); margin:0 0 24px; font-size:1.4em; font-weight:800;
+        display:flex; align-items:center; justify-content:center; gap:8px; }
+
+    .input-grid{ display:flex; gap:10px; align-items:flex-start; margin-bottom:20px; }
+    .input-item{ display:flex; flex-direction:column; align-items:center; }
+    .item-level{ flex:1; } .item-exp{ flex:1; } .item-hours{ flex:0.8; }
+    .input-item label{ margin-bottom:8px; font-size:0.85em; color:var(--muted); font-weight:700; white-space:nowrap; }
+    .input-item input{ width:100%; padding:12px; height:48px; font-size:16px; text-align:center;
+        border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--text); }
+    .input-item input::placeholder{ color:#6b7684; }
+    .input-item input:focus{ outline:none; border-color:var(--blue); box-shadow:0 0 0 3px rgba(49,130,246,0.2); }
+    input[type="number"]::-webkit-outer-spin-button,input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+    input[type="number"]{ -moz-appearance:textfield; }
+
+    .burning-check-container{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:22px; }
+    .burning-box{ display:flex; align-items:center; gap:8px; padding:12px 14px;
+        border:1px solid var(--line); border-radius:12px; background:var(--bg); transition:.15s; }
+    .burning-box:has(#burningCheck:checked){ border-color:#ff5b6e; background:rgba(255,91,110,0.09); }
+    .burning-box:has(#beyondCheck:checked){ border-color:#ff8a3d; background:rgba(255,138,61,0.09); }
+    .burning-icon{ width:24px; height:24px; object-fit:contain; flex-shrink:0; }
+    .burning-label{ font-weight:700; color:#ff5b6e; font-size:0.9em; flex:1; text-align:left; white-space:nowrap; }
+    .beyond-label{ color:#ff8a3d; }
+    .switch{ position:relative; display:inline-block; width:48px; height:26px; flex-shrink:0; }
+    .switch input{ opacity:0; width:0; height:0; }
+    .slider{ position:absolute; cursor:pointer; inset:0; background:#3a4453; transition:.3s; border-radius:34px; }
+    .slider:before{ position:absolute; content:""; height:20px; width:20px; left:3px; bottom:3px; background:#fff; transition:.3s; border-radius:50%; }
+    input:checked + .slider{ background:#ff5b6e; }
+    input:checked + .slider.beyond{ background:#ff8a3d; }
+    input:checked + .slider:before{ transform:translateX(22px); }
+
+    .main-calc-button{ width:100%; padding:14px 20px; border:none; border-radius:11px;
+        background:var(--blue); color:#fff; font-size:16px; font-weight:700; cursor:pointer;
+        font-family:inherit; letter-spacing:-0.3px; transition:background-color .15s; }
+    .main-calc-button:hover{ background:#1f6fe8; }
+    .main-calc-button:active{ transform:translateY(1px); }
+
+    #result{ margin-top:20px; padding:18px; background:#12161d; border:1px solid var(--line);
+        border-radius:12px; min-height:28px; line-height:1.8; font-size:1.05em; text-align:center; color:var(--text-2); }
+    .result-placeholder{ color:#6b7684; font-weight:normal; }
+    .error-message{ font-weight:700; color:var(--red); }
+    .res-hi{ color:var(--lime); font-weight:800; }
+    .res-main{ color:var(--blue-bright); font-weight:800; display:inline-block; margin-top:6px; font-size:1.05em; }
+    .disclaimer{ font-size:0.8em; color:#6b7684; margin-top:8px; }
+
+    @media (max-width:600px){
+        .input-grid{ flex-direction:column; gap:0; }
+        .input-item{ margin-bottom:14px; width:100%; }
+        .calculator-container h1{ font-size:1.2em; }
+    }
+</style>
+</head>
+<body>
+    <div class="calculator-container">
+        <h1>VIP 사우나 &amp; MVP 리조트 계산기</h1>
+
+        <div class="input-grid">
+            <div class="input-item item-level">
+                <label for="levelInput">캐릭터 레벨</label>
+                <input type="number" id="levelInput" placeholder="200~299">
+            </div>
+            <div class="input-item item-exp">
+                 <label for="expInput">현재 경험치 (%)</label>
+                 <input type="number" id="expInput" placeholder="기본값 0%">
+            </div>
+            <div class="input-item item-hours">
+                 <label for="hoursInput">이용 시간</label>
+                 <input type="number" id="hoursInput" placeholder="1~100" value="1">
+            </div>
+        </div>
+
+        <div class="burning-check-container">
+            <div class="burning-box">
+                <img src="https://k.kakaocdn.net/dn/nACWd/dJMcagFWAAH/AAAAAAAAAAAAAAAAAAAAAHVG-P0CvuRxPUA2r6R4dmt_Dn4jxQ6mZ29J20XgJXh7/img.png" class="burning-icon" alt="">
+                <span class="burning-label">하이퍼 버닝 MAX</span>
+                <label class="switch"><input type="checkbox" id="burningCheck"><span class="slider round"></span></label>
+            </div>
+            <div class="burning-box">
+                <img src="https://k.kakaocdn.net/dn/Tu8so/dJMcahLy2pV/AAAAAAAAAAAAAAAAAAAAAO63JXpYjI08tGl7xFVYc5WiypQnyaPykF94NMuGz6cY/img.png" class="burning-icon" alt="">
+                <span class="burning-label beyond-label">버닝 BEYOND</span>
+                <label class="switch"><input type="checkbox" id="beyondCheck"><span class="slider round beyond"></span></label>
+            </div>
+        </div>
+
+        <button onclick="calculateResult()" class="main-calc-button">계산하기</button>
+
+        <div id="result">
+            <div class="result-placeholder">정보를 입력하고 계산하기를 눌러주세요.</div>
+        </div>
+    </div>
+
+    <script>
+        const expData = {
+            "200":168.401,"201":155.083,"202":142.877,"203":131.905,"204":121.490,"205":112.006,"206":103.233,"207":94.80,"208":86.680,"209":79.221,
+            "210":129.283,"211":119.81,"212":111.191,"213":103.071,"214":95.013,"215":81.078,"216":75.962,"217":71.318,"218":66.774,"219":62.653,
+            "220":76.471,"221":73.049,"222":69.599,"223":66.446,"224":63.279,"225":53.839,"226":51.362,"227":48.877,"228":46.610,"229":44.426,
+            "230":39.286,"231":38.888,"232":38.482,"233":37.994,"234":37.583,"235":31.905,"236":31.546,"237":31.122,"238":30.761,"239":30.397,
+            "240":25.778,"241":25.813,"242":25.494,"243":25.125,"244":24.807,"245":21.019,"246":20.745,"247":20.471,"248":20.198,"249":19.925,
+            "250":17.552,"251":17.310,"252":17.068,"253":16.827,"254":16.588,"255":16.349,"256":16.112,"257":15.875,"258":15.667,"259":15.434,
+            "260":9.086,"261":9.125,"262":9.164,"263":9.203,"264":9.252,"265":8.007,"266":8.007,"267":8.065,"268":8.106,"269":8.133,
+            "270":4.12,"271":4.140,"272":4.152,"273":4.164,"274":4.182,"275":2.327,"276":2.142,"277":1.975,"278":1.818,"279":1.675,
+            "280":0.931,"281":0.858,"282":0.790,"283":0.727,"284":0.669,"285":0.372,"286":0.342,"287":0.315,"288":0.290,"289":0.267,
+            "290":0.132,"291":0.120,"292":0.109,"293":0.099,"294":0.090,"295":0.059,"296":0.054,"297":0.050,"298":0.046,"299":0.031
+        };
+
+        function calculateResult() {
+            const levelInput = document.getElementById('levelInput');
+            const hoursInput = document.getElementById('hoursInput');
+            const expInput = document.getElementById('expInput');
+            const burningCheck = document.getElementById('burningCheck');
+            const resultDiv = document.getElementById('result');
+
+            if (!levelInput.value) { resultDiv.innerHTML = `<div class="error-message">레벨을 입력해주세요.</div>`; return; }
+            if (expInput.value === "") { resultDiv.innerHTML = `<div class="error-message">현재 경험치를 입력해주세요. (0 이상)</div>`; return; }
+            if (!hoursInput.value) { resultDiv.innerHTML = `<div class="error-message">시간을 입력해주세요.</div>`; return; }
+
+            const startLevel = parseInt(levelInput.value, 10);
+            const hours = parseInt(hoursInput.value, 10);
+            const startExp = parseFloat(expInput.value);
+            const isBurning = burningCheck.checked;
+            const isBeyond = document.getElementById('beyondCheck').checked;
+
+            if (startLevel < 200) { resultDiv.innerHTML = `<div class="error-message">200레벨부터 지원합니다.</div>`; return; }
+            if (startLevel >= 300) { resultDiv.innerHTML = `<div class="error-message">300레벨 이상은 없습니다.</div>`; return; }
+            if (expData[startLevel] === undefined) { resultDiv.innerHTML = `<div class="error-message">데이터 오류: 해당 레벨 정보가 없습니다.</div>`; return; }
+            if (isNaN(startExp) || startExp < 0 || startExp >= 100) { resultDiv.innerHTML = `<div class="error-message">경험치는 0~99.999 사이로 입력해주세요.</div>`; return; }
+            if (hours < 1 || hours > 100) { resultDiv.innerHTML = `<div class="error-message">시간은 1~100 사이로 입력해주세요.</div>`; return; }
+
+            let currentLevel = startLevel;
+            let currentExp = startExp;
+            let hyperUsed = false;
+            let beyondUsed = false;
+
+            for (let i = 0; i < hours; i++) {
+                if (currentLevel >= 300) break;
+                const currentRate = expData[currentLevel];
+                if (currentRate === undefined) break;
+                currentExp += currentRate;
+
+                while (currentExp >= 100) {
+                    const oldRate = expData[currentLevel];
+                    let levelsToAdd = 1;
+                    if (isBurning && currentLevel < 260) { levelsToAdd = 5; hyperUsed = true; }
+                    else if (isBeyond && currentLevel >= 260 && currentLevel <= 279) { levelsToAdd = 2; beyondUsed = true; }
+
+                    let targetLevel = currentLevel + levelsToAdd;
+                    if (targetLevel > 300) targetLevel = 300;
+                    const newRate = expData[targetLevel];
+                    if (newRate === undefined && targetLevel < 300) break;
+                    if (targetLevel >= 300) { currentLevel = 300; currentExp = 0; break; }
+
+                    const overflow = currentExp - 100;
+                    const adjustedOverflow = overflow * (newRate / oldRate);
+                    currentLevel = targetLevel;
+                    currentExp = adjustedOverflow;
+                }
+            }
+
+            const levelsGained = currentLevel - startLevel;
+            const notes = [];
+            if (hyperUsed) notes.push('하이퍼 버닝');
+            if (beyondUsed) notes.push('버닝 BEYOND');
+            const burnNote = notes.length ? ` (${notes.join(' · ')} 적용됨)` : '';
+
+            resultDiv.innerHTML = `
+                총 <strong class="res-hi">${levelsGained}</strong>레벨 상승${burnNote}
+                <br>
+                <strong class="res-main">사용 후 : ${currentLevel}레벨 ${currentExp.toFixed(3)}%</strong>
+                <div class="disclaimer">(약간의 차이가 있을 수 있습니다)</div>
+            `;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const allInputs = document.querySelectorAll('#levelInput, #expInput, #hoursInput, #burningCheck, #beyondCheck');
+            function enterKeyHandler(event) { if (event.key === 'Enter') calculateResult(); }
+            allInputs.forEach(input => {
+                input.addEventListener('keyup', enterKeyHandler);
+                input.addEventListener('change', calculateResult);
+            });
+        });
+    </script>
+</body>
+</html>
