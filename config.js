@@ -6,4 +6,4 @@
  *
  * 주소를 넣기 전까지는 캐릭터 검색이 "주소를 먼저 설정하세요" 라고 안내합니다.
  */
-window.MAPLE_PROXY_URL = "";
+window.MAPLE_PROXY_URL = "https://maple-proxy.wjdwlstn3000.workers.dev";
